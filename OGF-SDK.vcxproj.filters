@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{80b641bf-c0d9-42dd-ae5d-0275e0d3a542}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{083a5704-996d-4e7a-9fb7-a59e7deceb24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Render">
+      <UniqueIdentifier>{9ca22222-30f0-4b5d-b082-2cd841d4f9dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Render\Templates">
+      <UniqueIdentifier>{dc49790b-34ec-4e37-8953-bb236d8f741d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI">
+      <UniqueIdentifier>{713f0ca0-0940-4809-95eb-8a5323b41567}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Core\OGF_SDK.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\CHW.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\_defines.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Templates\ConstantBuffer.h">
+      <Filter>Render\Templates</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Templates\FullScreenQuad.h">
+      <Filter>Render\Templates</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Templates\RenderTarget.h">
+      <Filter>Render\Templates</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\CRenderer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\UI\CUIMain.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\OGF_SDK.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\CHW.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Templates\ConstantBuffer.cpp">
+      <Filter>Render\Templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Templates\FullScreenQuad.cpp">
+      <Filter>Render\Templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Templates\RenderTarget.cpp">
+      <Filter>Render\Templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\CRenderer.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UI\CUIMain.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui_demo.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui_draw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui_impl_dx11.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui_impl_win32.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui_tables.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui_widgets.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

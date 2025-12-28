@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="OGF-SDK.vcxproj" Id="09fb734f-1819-4b68-b761-21768453910d" />
+</Solution>
