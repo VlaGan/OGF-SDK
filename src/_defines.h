@@ -4,6 +4,7 @@
 //----------------------------------------------------------------------------
 #pragma once
 #include <cstdint>
+#include "Core/CLog.h"
 
 #define RELEASE(ptr) if (ptr) { ptr->Release(); ptr = nullptr;}
 #define INL inline //-- IC conflicts with llama-cpp

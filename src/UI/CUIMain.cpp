@@ -13,6 +13,9 @@
 #include <ImGui/imgui_impl_dx11.h>
 #include <ImGui/imgui_impl_win32.h>
 
+#include "../Core/CLog.h"
+#include "../Core/CCamera.h"
+extern CCamera m_Camera;
 //-------------------------------------------------------------------------
 //-- Ctor / Dtor
 //-------------------------------------------------------------------------
@@ -43,9 +46,9 @@ void CUIMain::Init(HWND hwnd)
 
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    //io.IniFilename = nullptr; // disable ini file
+    io.IniFilename = "userdata\\imgui.ini"; // disable ini file
 
-    // --- Style
+    // --- Style  
     ImGui::StyleColorsDark();
     ImGuiStyle& style = ImGui::GetStyle();
     style.WindowRounding = 4.0f;
@@ -178,27 +181,38 @@ void CUIMain::Render()
 //-------------------------------------------------------------------------
 //-- Viewport
 //-------------------------------------------------------------------------
-
+#include <format>
 void CUIMain::DrawScene()
 {
     CHW& hw = CHW::Get();
     CRenderer& renderer = CRenderer::Get();
-    CRenderTarget& rt = renderer.m_mnRT;
+    CRenderTarget* rt = renderer.GetMainRT();
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove;
     if (ImGui::Begin("Viewport", nullptr, flags)) {
         ImVec2 size = ImGui::GetContentRegionAvail();
         if (size.x > 0 && size.y > 0)
         {
-            if ((UINT)size.x != rt.m_Width || (UINT)size.y != rt.m_Height)
-                rt.Create(hw.m_Device, (UINT)size.x, (UINT)size.y);
+            if ((UINT)size.x != rt->m_Width || (UINT)size.y != rt->m_Height) {
+                rt->Create(hw.m_Device, (UINT)size.x, (UINT)size.y);
+				renderer.Resize((UINT)size.x, (UINT)size.y);
+            }
         }
 
         renderer.Render();
+        if (rt->m_SRV)
+            ImGui::Image(rt->m_SRV, size);
 
-        if (rt.m_SRV)
-            ImGui::Image(rt.m_SRV, size);
+        ImGui::SetCursorPos(ImVec2(10, 28));
+		ImGui::Text("VP size: [%.0f, %.0f]", size.x, size.y);
+		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Text("\nCamera Pos: [%.2f, %.2f, %.2f]", VPUSH3(m_Camera.m_position));
 
+		ImVec2 cursorPos = ImGui::GetCursorPos();
+		std::string inputText = std::format("Move: W/S/A/D\nUp/Down: Space/Ctrl\nDirection: Mouse RB+LB");
+		ImVec2 textSize = ImGui::CalcTextSize(inputText.c_str());
+        ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvail().x - textSize.x, 28));
+		ImGui::Text(inputText.c_str());
         ImGui::End();
     }
 }
@@ -221,16 +235,65 @@ void CUIMain::DrawProperties()
     ImGui::ColorPicker4("##Color", renderer.m_ClearColor, 0);
     ImGui::Separator();
 
+	ImGui::SliderFloat3("Camera Position", (float*)&m_Camera.m_position, -10.0f, 10.0f);
     ImGui::End();
 }
 
 //-------------------------------------------------------------------------
 //-- Log
 //-------------------------------------------------------------------------
-
 void CUIMain::DrawLog()
 {
-    ImGui::Begin("Log");
-    ImGui::TextWrapped("Engine started...");
-    ImGui::End();
+    if (ImGui::Begin("Log")) {
+
+        CLog& log = CLog::Get();
+
+        if (ImGui::Button("Clear"))
+            log.Clear();
+
+        ImGui::SameLine();
+        ImGui::Checkbox("Auto-scroll", &log.m_AutoScroll); //-- simple imgui window class needed
+        ImGui::SameLine();
+        ImGui::Checkbox("Info", &log.m_ShowInfo);
+        ImGui::SameLine();
+        ImGui::Checkbox("Warning", &log.m_ShowWarning);
+        ImGui::SameLine();
+        ImGui::Checkbox("Error", &log.m_ShowError);
+        ImGui::SameLine();
+        ImGui::Checkbox("Debug", &log.m_ShowDebug);
+
+        ImGui::Separator();
+
+        ImGui::BeginChild("LogScrollRegion", ImVec2(0, 0), false,
+            ImGuiWindowFlags_HorizontalScrollbar);
+
+        for (const auto& entry : log.GetEntries()) {
+            switch (entry.type) {
+            case INFO:    if (!log.m_ShowInfo) continue; break;
+            case WARNING: if (!log.m_ShowWarning) continue; break;
+            case ERR:     if (!log.m_ShowError) continue; break;
+            case DEBUG:   if (!log.m_ShowDebug) continue; break;
+            }
+
+            ImVec4 color;
+            switch (entry.type) {
+            case WARNING: color = ImVec4(1.0f, 0.8f, 0.2f, 1.0f); break;
+            case ERR:     color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f); break;
+            case DEBUG:   color = ImVec4(0.6f, 0.6f, 0.6f, 1.0f); break;
+            default:      color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); break;
+            }
+
+            ImGui::TextColored(color, "[%s] [%s] %s",
+                entry.timestamp.c_str(),
+                log.LevelToString(entry.type),
+                entry.message.c_str());
+        }
+
+        if (log.m_AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+            ImGui::SetScrollHereY(1.0f);
+
+        ImGui::EndChild();
+
+        ImGui::End();
+    }
 }

@@ -105,12 +105,14 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;$(ProjectDir)3rd_party\assimp\include;$(ProjectDir)3rd_party\stb_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rd_party\assimp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -122,21 +124,35 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;$(ProjectDir)3rd_party\assimp\include;$(ProjectDir)3rd_party\stb_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rd_party\assimp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Core\CCamera.h" />
+    <ClInclude Include="src\Core\CLog.h" />
     <ClInclude Include="src\Core\OGF_SDK.h" />
+    <ClInclude Include="src\Render\AssimpHelper\AssimpFunctions.h" />
     <ClInclude Include="src\Render\CHW.h" />
     <ClInclude Include="src\Render\CRenderer.h" />
+    <ClInclude Include="src\Render\CShaderContainer.h" />
+    <ClInclude Include="src\Render\CDebugRenderer.h" />
+    <ClInclude Include="src\Render\Model\CMesh.h" />
+    <ClInclude Include="src\Render\Model\CModel.h" />
+    <ClInclude Include="src\Render\Model\CMotion.h" />
+    <ClInclude Include="src\Render\Model\CSkeleton.h" />
     <ClInclude Include="src\Render\Templates\ConstantBuffer.h" />
+    <ClInclude Include="src\Render\Templates\CShader.h" />
     <ClInclude Include="src\Render\Templates\FullScreenQuad.h" />
     <ClInclude Include="src\Render\Templates\RenderTarget.h" />
+    <ClInclude Include="src\Render\_render_structs.h" />
+    <ClInclude Include="src\resource.h" />
     <ClInclude Include="src\UI\CUIMain.h" />
     <ClInclude Include="src\_defines.h" />
   </ItemGroup>
@@ -148,14 +164,26 @@
     <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui_tables.cpp" />
     <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="src\Core\CCamera.cpp" />
+    <ClCompile Include="src\Core\CLog.cpp" />
     <ClCompile Include="src\Core\OGF_SDK.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Render\CHW.cpp" />
     <ClCompile Include="src\Render\CRenderer.cpp" />
+    <ClCompile Include="src\Render\CShaderContainer.cpp" />
+    <ClCompile Include="src\Render\CDebugRenderer.cpp" />
+    <ClCompile Include="src\Render\Model\CMesh.cpp" />
+    <ClCompile Include="src\Render\Model\CModel.cpp" />
+    <ClCompile Include="src\Render\Model\CMotion.cpp" />
+    <ClCompile Include="src\Render\Model\CSkeleton.cpp" />
     <ClCompile Include="src\Render\Templates\ConstantBuffer.cpp" />
+    <ClCompile Include="src\Render\Templates\CShader.cpp" />
     <ClCompile Include="src\Render\Templates\FullScreenQuad.cpp" />
     <ClCompile Include="src\Render\Templates\RenderTarget.cpp" />
     <ClCompile Include="src\UI\CUIMain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="src\resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

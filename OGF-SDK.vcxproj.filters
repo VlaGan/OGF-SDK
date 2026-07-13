@@ -28,6 +28,15 @@
     <Filter Include="UI">
       <UniqueIdentifier>{713f0ca0-0940-4809-95eb-8a5323b41567}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Render\Model">
+      <UniqueIdentifier>{4e8fc7c7-a461-4c42-b120-dd3c9f18a9e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Log">
+      <UniqueIdentifier>{da4bb0c8-7604-40c7-b18b-c7eb78ca9761}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Render\Assimp">
+      <UniqueIdentifier>{239cbb8d-f7ef-4554-885d-e0b336ca4f0e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\OGF_SDK.h">
@@ -53,6 +62,42 @@
     </ClInclude>
     <ClInclude Include="src\UI\CUIMain.h">
       <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Core\CLog.h">
+      <Filter>Core\Log</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Templates\CShader.h">
+      <Filter>Render\Templates</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\CMesh.h">
+      <Filter>Render\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\CModel.h">
+      <Filter>Render\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\CMotion.h">
+      <Filter>Render\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\CSkeleton.h">
+      <Filter>Render\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\AssimpHelper\AssimpFunctions.h">
+      <Filter>Render\Assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Core\CCamera.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\CDebugRenderer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\CShaderContainer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\_render_structs.h">
+      <Filter>Render</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -101,5 +146,37 @@
     <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui_widgets.cpp">
       <Filter>ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="src\Core\CLog.cpp">
+      <Filter>Core\Log</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Templates\CShader.cpp">
+      <Filter>Render\Templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\CMesh.cpp">
+      <Filter>Render\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\CModel.cpp">
+      <Filter>Render\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\CMotion.cpp">
+      <Filter>Render\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\CSkeleton.cpp">
+      <Filter>Render\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\CCamera.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\CDebugRenderer.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\CShaderContainer.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="src\resource.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

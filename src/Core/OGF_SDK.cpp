@@ -2,10 +2,18 @@
 //-- COGF_SDK - main window class
 //----------------------------------------------------------------------------
 #include <ImGui/imgui_internal.h>
+#include <windowsx.h>
 #include "OGF_SDK.h"
+#include "../resource.h"
 #include "../Render/CHW.h"
 #include "../Render/CRenderer.h"
 #include "../UI/CUIMain.h"
+#include "../_defines.h"
+#include "CCamera.h"
+
+CCamera m_Camera; //-- TODO
+UINT lastMouseX{};
+UINT lastMouseY{};
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -54,6 +62,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     }
     break;
 
+    //-- moving mouse 
+    case WM_MOUSEMOVE: {
+        if (wParam & MK_RBUTTON) {
+            int dx = GET_X_LPARAM(lParam) - lastMouseX;
+            int dy = GET_Y_LPARAM(lParam) - lastMouseY;
+            m_Camera.OnMouseMove(dx, dy);
+        }
+        lastMouseX = GET_X_LPARAM(lParam);
+        lastMouseY = GET_Y_LPARAM(lParam);
+    }break;
+
+                     //-- mouse wheel
+    case WM_MOUSEWHEEL: {
+            m_Camera.OnMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
+    }break;
+
+                      //-- keyboard key down
+    case WM_KEYDOWN: {
+            m_Camera.OnKeyDown(wParam);
+    }break;
+
+                   //-- keyboard keyup
+    case WM_KEYUP: {
+            m_Camera.OnKeyUp(wParam);
+    }break;
+
+
     //-- Destroying window
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -75,6 +110,7 @@ COGF_SDK::~COGF_SDK() {
 }
 
 bool COGF_SDK::Create(HINSTANCE hInstance, int nCmdShow) {
+	LogMsg("COGF_SDK::Create -> Initialization...");
     //-- Setup Windows DPI aware
     //SetProcessDPIAware();
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -84,7 +120,7 @@ bool COGF_SDK::Create(HINSTANCE hInstance, int nCmdShow) {
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
     //wc.style = CS_HREDRAW | CS_VREDRAW;
-    //wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1)); //-- maiva ico
+    wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1)); //-- ico
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wc.lpszClassName = L"OGFSDKClass";
