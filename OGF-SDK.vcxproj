@@ -153,7 +153,11 @@
     <ClInclude Include="src\Render\Templates\RenderTarget.h" />
     <ClInclude Include="src\Render\_render_structs.h" />
     <ClInclude Include="src\resource.h" />
+    <ClInclude Include="src\UI\CImGuiWindow.h" />
+    <ClInclude Include="src\UI\CUILog.h" />
     <ClInclude Include="src\UI\CUIMain.h" />
+    <ClInclude Include="src\UI\CUISceneSettings.h" />
+    <ClInclude Include="src\UI\CUIViewport.h" />
     <ClInclude Include="src\_defines.h" />
   </ItemGroup>
   <ItemGroup>
@@ -180,7 +184,11 @@
     <ClCompile Include="src\Render\Templates\CShader.cpp" />
     <ClCompile Include="src\Render\Templates\FullScreenQuad.cpp" />
     <ClCompile Include="src\Render\Templates\RenderTarget.cpp" />
+    <ClCompile Include="src\UI\CImGuiWindow.cpp" />
+    <ClCompile Include="src\UI\CUILog.cpp" />
     <ClCompile Include="src\UI\CUIMain.cpp" />
+    <ClCompile Include="src\UI\CUISceneSettings.cpp" />
+    <ClCompile Include="src\UI\CUIViewport.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\resource.rc" />

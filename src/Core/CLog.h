@@ -50,13 +50,6 @@ private:
     std::vector<LogEntry> m_LogEntries;
     std::ofstream m_FileStream;
     // std::mutex m_Mutex;
-
-public:    
-    bool m_AutoScroll = true;
-    bool m_ShowInfo = true;
-    bool m_ShowWarning = true;
-    bool m_ShowError = true;
-    bool m_ShowDebug = true;
 };
 
 //-- global adding log entityes

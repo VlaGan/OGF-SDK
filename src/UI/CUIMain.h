@@ -4,6 +4,9 @@
 //----------------------------------------------------------------------------
 #pragma once
 #include <Windows.h>
+#include <vector>
+
+class CImGuiWindow;
 
 class CUIMain {
 public:
@@ -25,11 +28,11 @@ public:
 	void Resize(UINT width, UINT height);
 
 	void DrawDockSpace();
-	void DrawScene();
-	void DrawProperties();
-	void DrawLog();
 
 	bool m_bResize{};
 	bool m_bFirstFrame{};
 	HWND m_hWND{};
+
+private:
+	std::vector<CImGuiWindow*> m_Windows;
 };

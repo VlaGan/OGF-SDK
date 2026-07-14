@@ -99,6 +99,18 @@
     <ClInclude Include="src\Render\_render_structs.h">
       <Filter>Render</Filter>
     </ClInclude>
+    <ClInclude Include="src\UI\CImGuiWindow.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\UI\CUIViewport.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\UI\CUILog.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\UI\CUISceneSettings.h">
+      <Filter>UI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -172,6 +184,18 @@
     </ClCompile>
     <ClCompile Include="src\Render\CShaderContainer.cpp">
       <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UI\CImGuiWindow.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UI\CUIViewport.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UI\CUILog.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UI\CUISceneSettings.cpp">
+      <Filter>UI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
