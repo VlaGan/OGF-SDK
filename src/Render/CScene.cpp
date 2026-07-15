@@ -44,6 +44,18 @@ void CScene::ClearScene() {
 	m_Models.clear();
 }
 
+void CScene::DeleteModel(CModel* model) {
+	for (auto it = m_Models.begin(); it != m_Models.end(); it++) {
+		if (model == (*it)) {
+			if (m_SelectedModel == model)
+				m_SelectedModel = nullptr;
+			delete (*it);
+			m_Models.erase(it);
+			break;
+		}
+	}
+}
+
 CModel* CScene::LoadModel(const std::string& path) {
 	CHW& hw = CHW::Get();
 	CModel* model = new CModel();

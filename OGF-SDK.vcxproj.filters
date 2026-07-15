@@ -117,6 +117,9 @@
     <ClInclude Include="src\UI\CUIScene.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="src\UI\CUISelectedItem.h">
+      <Filter>UI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -207,6 +210,9 @@
       <Filter>Render</Filter>
     </ClCompile>
     <ClCompile Include="src\UI\CUIScene.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UI\CUISelectedItem.cpp">
       <Filter>UI</Filter>
     </ClCompile>
   </ItemGroup>

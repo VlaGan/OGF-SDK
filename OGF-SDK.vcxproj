@@ -159,6 +159,7 @@
     <ClInclude Include="src\UI\CUIMain.h" />
     <ClInclude Include="src\UI\CUIScene.h" />
     <ClInclude Include="src\UI\CUISceneSettings.h" />
+    <ClInclude Include="src\UI\CUISelectedItem.h" />
     <ClInclude Include="src\UI\CUIViewport.h" />
     <ClInclude Include="src\_defines.h" />
   </ItemGroup>
@@ -192,6 +193,7 @@
     <ClCompile Include="src\UI\CUIMain.cpp" />
     <ClCompile Include="src\UI\CUIScene.cpp" />
     <ClCompile Include="src\UI\CUISceneSettings.cpp" />
+    <ClCompile Include="src\UI\CUISelectedItem.cpp" />
     <ClCompile Include="src\UI\CUIViewport.cpp" />
   </ItemGroup>
   <ItemGroup>

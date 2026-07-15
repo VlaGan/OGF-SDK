@@ -197,6 +197,29 @@ void DebugDrawGrid(ID3D11DeviceContext* context, CDebugRenderer& debug, float si
     }
 }
 
+
+void DebugDrawSkeleton(ID3D11DeviceContext* context, CDebugRenderer& debug, CBoneInstance* pBi) {
+    if (!pBi)
+        return;
+
+    DirectX::XMFLOAT4 linecolor(0.0f, 1.0f, 0.0f, 1.0f);
+    DirectX::XMFLOAT4 boxcolor(1.0f, 1.0f, 0.0f, 1.0f);
+
+    DirectX::XMFLOAT3 par_pos;
+    DirectX::XMStoreFloat3(&par_pos, pBi->mGlobalTransform.r[3]);
+    debug.DrawCube(context, par_pos, 0.005f, boxcolor);
+
+    for (auto& ch : pBi->m_vChilds)
+    {
+        DirectX::XMFLOAT3 ch_pos;
+        DirectX::XMStoreFloat3(&ch_pos, ch->mGlobalTransform.r[3]);
+        debug.DrawLine(context, par_pos, ch_pos, linecolor);
+        DebugDrawSkeleton(context, debug, ch);
+
+    }
+}
+
+
 void CRenderer::Render() {
 	CHW& hw = CHW::Get();
 
@@ -257,6 +280,14 @@ void CRenderer::Render() {
 
     hw.m_Context->OMSetDepthStencilState(nullptr, 1);
     hw.m_Context->OMSetBlendState(nullptr, 0, 0xffffffff);
+
+
+    m_debugRenderer.SetRenderPhase(ePhaseAfterScene);
+    if (scene.m_bDrawSkeleton)
+    for (auto& model : scene.GetModels())
+        if(model->m_Skeleton.m_BoneCount)
+            DebugDrawSkeleton(hw.m_Context, m_debugRenderer, model->m_Skeleton.GetRootBone()); //-- Skeleton debug
+    m_debugRenderer.Render(hw.m_Context, m_ViewProj, true);
 
     /*
     m_debugRenderer.SetRenderPhase(ePhaseAfterScene);

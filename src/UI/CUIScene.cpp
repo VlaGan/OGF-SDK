@@ -18,6 +18,8 @@ void CUIScene::RenderContent()
     ImGui::Checkbox("Grid", &scene.m_bDrawGrid);
     ImGui::SameLine();
     ImGui::Checkbox("Wireframe", &scene.m_bWireframe);
+    ImGui::SameLine();
+    ImGui::Checkbox("DrawSkeleton", &scene.m_bDrawSkeleton);
     ImGui::Separator();
 
     //----------------------------------------
@@ -57,13 +59,15 @@ void CUIScene::DrawModelNode(CModel* model)
 {
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (CScene::Get().m_SelectedModel == model)
+    CScene& scene = CScene::Get();
+
+    if (scene.m_SelectedModel == model)
         flags |= ImGuiTreeNodeFlags_Selected;
 
     bool opened = ImGui::TreeNodeEx(model, flags, "%s", model->m_modelName.c_str());
 
     if (ImGui::IsItemClicked())
-        CScene::Get().m_SelectedModel = model;
+        scene.m_SelectedModel = model;
 
     //-------------------------------------
     // Context menu
@@ -72,7 +76,10 @@ void CUIScene::DrawModelNode(CModel* model)
     if (ImGui::BeginPopupContextItem())
     {
         if (ImGui::MenuItem("Rename")) {}
-        if (ImGui::MenuItem("Delete")) {}
+        if (ImGui::MenuItem("Delete")) {
+            scene.DeleteModel(model);
+            return;
+        }
 
         ImGui::Separator();
         ImGui::TextDisabled("Meshes: %d", (int)model->m_Meshes.size());

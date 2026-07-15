@@ -22,11 +22,13 @@ public:
 	void ClearScene();
 
 	CModel* LoadModel(const std::string& path);
+	void DeleteModel(CModel* model);
 
 	std::vector<CModel*>& GetModels() { return m_Models; }
 
 	bool m_bDrawGrid{ true };
 	bool m_bWireframe{ false };
+	bool m_bDrawSkeleton{ false };
 
 	CModel* m_SelectedModel{};
 

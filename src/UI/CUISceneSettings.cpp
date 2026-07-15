@@ -4,15 +4,38 @@
 #include "CUISceneSettings.h"
 #include "../Render/CRenderer.h"
 
+#include "../Core/CCamera.h"
+
+extern CCamera m_Camera;
+
 void CUISceneSettings::RenderContent()
 {
-    ImGuiColorEditFlags color_flags =
-        ImGuiColorEditFlags_NoSidePreview |
-        ImGuiColorEditFlags_NoSmallPreview |
-        ImGuiColorEditFlags_PickerHueBar;
+    if (ImGui::CollapsingHeader("Genearal", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-    CRenderer& renderer = CRenderer::Get();
-    ImGui::Text("Background rt color:");
-    ImGui::ColorPicker4("##Color", renderer.m_ClearColor, 0);
-    ImGui::Separator();
+        ImGuiColorEditFlags color_flags =
+            ImGuiColorEditFlags_NoSidePreview |
+            ImGuiColorEditFlags_NoSmallPreview |
+            ImGuiColorEditFlags_PickerHueBar;
+
+        CRenderer& renderer = CRenderer::Get();
+        ImGui::Text("Background rt color:");
+        ImGui::ColorPicker4("##Color", renderer.m_ClearColor, 0);
+        ImGui::Separator();
+    }
+
+    if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_None)) {
+
+        std::string camera_mode = m_Camera.m_mode == 
+            eCameraProjMode::ePerspective ? "Perspective" : "Orthogonal";
+
+        if (ImGui::Button("Camera mode:")) {
+            m_Camera.m_mode = m_Camera.m_mode ==
+                eCameraProjMode::ePerspective ? eCameraProjMode::Orthographic : eCameraProjMode::ePerspective;
+        }
+        ImGui::SameLine();
+        ImGui::Text(camera_mode.c_str());
+
+        ImGui::InputFloat("zNear", &m_Camera.zNear);
+        ImGui::InputFloat("zFar", &m_Camera.zFar);
+    }
 }
