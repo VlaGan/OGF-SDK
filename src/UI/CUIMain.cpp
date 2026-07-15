@@ -12,6 +12,7 @@
 #include "CUIViewport.h"
 #include "CUILog.h"
 #include "CUISceneSettings.h"
+#include "CUIScene.h"
 
 //-------------------------------------------------------------------------
 //-- Ctor / Dtor
@@ -89,6 +90,7 @@ void CUIMain::Init(HWND hwnd)
 	m_Windows.push_back(&CUIViewPort::Get());
 	m_Windows.push_back(&CUILog::Get());
 	m_Windows.push_back(&CUISceneSettings::Get());
+	m_Windows.push_back(&CUIScene::Get());
 }
 
 //-------------------------------------------------------------------------
@@ -122,6 +124,7 @@ void CUIMain::DrawDockSpace()
         ImGui::DockBuilderSplitNode(dock_id_left, ImGuiDir_Up, 0.50f, &dock_id_left_top, &dock_id_left_bottom);
         ImGui::DockBuilderDockWindow("Viewport", dock_id_main);
         ImGui::DockBuilderDockWindow("Scene Settings", dock_id_left_top);
+        ImGui::DockBuilderDockWindow("Scene", dock_id_left_top);
         ImGui::DockBuilderDockWindow("Log", dock_id_left_bottom);
         ImGui::DockBuilderFinish(dockspace_id);
     }

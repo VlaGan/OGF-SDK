@@ -31,7 +31,7 @@ public:
     void DrawCube(ID3D11DeviceContext* context, const DirectX::XMFLOAT3& center, float size, const DirectX::XMFLOAT4& color);
     void DrawBoneAxis(ID3D11DeviceContext* context, const CBoneInstance& bone, float size = 0.5f);
 
-    void Render(ID3D11DeviceContext* context, const DirectX::XMMATRIX& viewProj);
+    void Render(ID3D11DeviceContext* context, const DirectX::XMMATRIX& viewProj, bool depth = false);
 
     void SetRenderPhase(eDebugPhase phase) { m_DebugPhase = phase; }
     eDebugPhase m_DebugPhase{ ePhaseAfterScene };

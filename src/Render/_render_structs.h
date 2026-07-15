@@ -12,9 +12,6 @@
 //-- maximum bones in skeleton
 #define MAX_BONES 256
 
-#define zNear 0.01f
-#define zFar  100.f
-
 //-- vertex for model defining
 struct Vertex {
     DirectX::XMFLOAT3 position;

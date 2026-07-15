@@ -111,6 +111,12 @@
     <ClInclude Include="src\UI\CUISceneSettings.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="src\Render\CScene.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\UI\CUIScene.h">
+      <Filter>UI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -195,6 +201,12 @@
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="src\UI\CUISceneSettings.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\CScene.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UI\CUIScene.cpp">
       <Filter>UI</Filter>
     </ClCompile>
   </ItemGroup>

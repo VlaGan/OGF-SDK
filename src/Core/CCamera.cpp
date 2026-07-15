@@ -9,18 +9,23 @@
 #include "../Render/_render_structs.h"
 
 
-CCamera::CCamera() :
-    m_position(0.f, 0.75f, -5.f),
-    m_yaw(0.f),
-    m_pitch(0.f),
-    m_speed(1.f),
-    m_mouseSensitivity(0.002f),
-    m_fov(DirectX::XM_PIDIV4),
-    m_aspectRatio(16.f / 10.f), //-- correct for my laptop, but need autodetect
-    m_moveForward(false), m_moveBackward(false),
-    m_moveLeft(false), m_moveRight(false),
-    m_moveUp(false), m_moveDown(false)
-{
+CCamera::CCamera() {
+    m_position = { 0.f, 0.75f, -5.f };
+    m_yaw = 0.f;
+    m_pitch = 0.f;
+    m_speed = 1.f;
+    m_mouseSensitivity = 0.002f;
+    m_fov = DirectX::XM_PIDIV4;
+    m_aspectRatio = 16.f / 10.f; //-- correct for my laptop, but need autodetect
+    m_moveForward = false;
+    m_moveBackward = false;
+    m_moveLeft = false;
+    m_moveRight = false;
+    m_moveUp = false;
+    m_moveDown = false;
+
+	zNear = 0.1f;
+	zFar = 100.f;
 }
 
 void CCamera::Update(float dt)

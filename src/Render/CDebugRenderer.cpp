@@ -93,7 +93,7 @@ void CDebugRenderer::DrawBoneAxis(ID3D11DeviceContext* context, const CBoneInsta
 }
 
 //-- render all debug
-void CDebugRenderer::Render(ID3D11DeviceContext* context, const DirectX::XMMATRIX& viewProj) {
+void CDebugRenderer::Render(ID3D11DeviceContext* context, const DirectX::XMMATRIX& viewProj, bool depth) {
     if (m_vertices[m_DebugPhase].empty()) return;
 
     //-- vertex buffer (position/color)
@@ -122,21 +122,25 @@ void CDebugRenderer::Render(ID3D11DeviceContext* context, const DirectX::XMMATRI
 
     ID3D11DepthStencilState* oldDepthState;
     UINT oldStencilRef;
-    context->OMGetDepthStencilState(&oldDepthState, &oldStencilRef);
+    if (!depth) {
+        context->OMGetDepthStencilState(&oldDepthState, &oldStencilRef);
 
-    D3D11_DEPTH_STENCIL_DESC depthDesc = {};
-    depthDesc.DepthEnable = false;
-    depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        D3D11_DEPTH_STENCIL_DESC depthDesc = {};
+        depthDesc.DepthEnable = false;
+        depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 
-    ID3D11DepthStencilState* newDepthState;
-    m_pDevice->CreateDepthStencilState(&depthDesc, &newDepthState);
-    context->OMSetDepthStencilState(newDepthState, 0);
-    newDepthState->Release();
+        ID3D11DepthStencilState* newDepthState;
+        m_pDevice->CreateDepthStencilState(&depthDesc, &newDepthState);
+        context->OMSetDepthStencilState(newDepthState, 0);
+        newDepthState->Release();
 
-    context->Draw((UINT)m_vertices[m_DebugPhase].size(), 0);
+        context->Draw((UINT)m_vertices[m_DebugPhase].size(), 0);
 
-    context->OMSetDepthStencilState(oldDepthState, oldStencilRef);
-    if (oldDepthState) oldDepthState->Release();
+        context->OMSetDepthStencilState(oldDepthState, oldStencilRef);
+        if (oldDepthState) oldDepthState->Release();
+    } 
+    else
+        context->Draw((UINT)m_vertices[m_DebugPhase].size(), 0);
 
     m_vertices[m_DebugPhase].clear();
 }

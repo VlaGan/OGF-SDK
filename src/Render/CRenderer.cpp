@@ -7,6 +7,8 @@
 #include <d3dcompiler.h>
 #include "../Core/CCamera.h"
 
+#include "CScene.h"
+
 extern CCamera m_Camera; //-- peredelat potom
 
 //-- Camera parameterss (cut this shit later)
@@ -15,16 +17,20 @@ DirectX::XMFLOAT3 camPos = DirectX::XMFLOAT3(0.0f, 1.0f, -5.0f);
 DirectX::XMFLOAT4 camAt = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 DirectX::XMFLOAT4 camUp = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
 
-float deg2rad(float deg) { return deg * (DirectX::XM_PI / 180.f); }
-
 //-- Blinn-Phong like
 DirectX::XMFLOAT3 lightDir = DirectX::XMFLOAT3(-0.5f, -1.0f, -0.3f);
 DirectX::XMFLOAT4 lightColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 float specularPower = 32.0f;
 
 CRenderer::CRenderer() {
-    LoadScene();
+    m_View = DirectX::XMMatrixIdentity();
+    m_Projection = DirectX::XMMatrixIdentity();
+    m_ViewProj = DirectX::XMMatrixIdentity();
+    m_LightView = DirectX::XMMatrixIdentity();
+    m_LightProj = DirectX::XMMatrixIdentity();
+    m_LightViewProj = DirectX::XMMatrixIdentity();
 }
+
 
 CRenderer::~CRenderer() {
 	m_mnRT.Release();
@@ -32,6 +38,7 @@ CRenderer::~CRenderer() {
 	RELEASE(m_DepthStencilBuffer);
 	RELEASE(m_DepthStencilView);
 	RELEASE(m_RasterState);
+    RELEASE(m_RasterStateWireframe);
     RELEASE(m_DepthStencilState);
     RELEASE(m_DepthStencilTransparent);
     RELEASE(m_AlphaBlendState);
@@ -108,8 +115,9 @@ bool CRenderer::Init(UINT dwW, UINT dwH) {
         DirectX::XMVectorSet(VPUSH4(camUp))    // (up)
     );
 
+
     m_Projection = DirectX::XMMatrixPerspectiveFovLH(
-        fFov, (float)dwW / (float)dwH, zNear, zFar
+        fFov, (float)dwW / (float)dwH, m_Camera.zNear, m_Camera.zFar
     );
 
     m_debugRenderer.Initialize(hw.m_Device);
@@ -120,6 +128,9 @@ bool CRenderer::Init(UINT dwW, UINT dwH) {
     rasterDesc.FillMode = D3D11_FILL_SOLID;
     rasterDesc.FrontCounterClockwise = false;
     hw.m_Device->CreateRasterizerState(&rasterDesc, &m_RasterState);
+
+    rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+    hw.m_Device->CreateRasterizerState(&rasterDesc, &m_RasterStateWireframe);
 
 
     D3D11_DEPTH_STENCIL_DESC dsDesc = {};
@@ -166,49 +177,23 @@ bool CRenderer::Init(UINT dwW, UINT dwH) {
 	return true;
 }
 
-void CRenderer::LoadScene() {
-    CHW& hw = CHW::Get();
-
-    if (!m_Model.LoadFromFile(hw.m_Device, "appdata/models/Minori.fbx"))
-    {
-        MessageBox(nullptr, L"Model was not loaded!", L"Error", MB_OK);
-		LogMsg(ERR, "CRenderer::LoadScene: Model[%s] was not loaded!", "appdata/models/miku+.fbx");
-    }
-    m_Model.SetScale(1.0f, 1.0f, 1.0f);
-    m_Model.SetPosition(0.f, -0.35f, -2.5f);
-    m_Model.SetRotation(deg2rad(90.f), 0.f, deg2rad(0.f));
-    m_Model.m_CurrentTime = 0.f;
-    m_Model.m_TicksPerSecond = 30.f;
-    
-    //-- Test model 
-    m_Model2.LoadFromFile(hw.m_Device, "appdata/models/cover.fbx");
-    m_Model2.SetScale(3.0f, 3.0f, 3.0f);
-    m_Model2.SetPosition(0.f, -0.35f, -2.0f);
-    m_Model2.SetRotation(deg2rad(90.f), 0.f, deg2rad(180.f));
-    for (auto& m : m_Model2.m_Meshes) {
-        m.SetShader(hw.m_Device, L"appdata/shaders/skinned_not.hlsl");
-        //m.SetShadowShader(hw.m_Device, L"appdata/shaders/shadow_map.hlsl");
-    }
-    m_Model2.m_CurrentTime = 0.f;
-    m_Model2.m_TicksPerSecond = 0.f;
-
-    LogMsg(eLogLevel::DEBUG, "CRenderer::LoadScene() -> Success");
-}
-
 // ground grid
 void DebugDrawGrid(ID3D11DeviceContext* context, CDebugRenderer& debug, float size, float step) {
-    DirectX::XMFLOAT4 gridColor(1.0f, 1.0f, 1.0f, 1.0f);
+    DirectX::XMFLOAT4 gridColor(0.8f, 0.8f, 0.8f, 1.0f);
+    DirectX::XMFLOAT4 red(1.0f, 0.0f, 0.0f, 1.0f);
+    DirectX::XMFLOAT4 green(0.0f, 1.0f, 0.0f, 1.0f);
+
     for (float x = -size; x <= size; x += step) {
         debug.DrawLine(context,
             DirectX::XMFLOAT3(x, 0, -size),
             DirectX::XMFLOAT3(x, 0, size),
-            gridColor);
+            !x ? red : gridColor);
     }
     for (float z = -size; z <= size; z += step) {
         debug.DrawLine(context,
             DirectX::XMFLOAT3(-size, 0, z),
             DirectX::XMFLOAT3(size, 0, z),
-            gridColor);
+            !z ? green: gridColor);
     }
 }
 
@@ -224,8 +209,11 @@ void CRenderer::Render() {
 
     //-- update camera
     m_Camera.Update(dt);
-	m_Model2.Update(dt);
-    m_Model.Update(dt);
+
+	CScene& scene = CScene::Get();
+	for (auto& model : scene.GetModels())
+		model->Update(dt);
+
     m_View = m_Camera.GetViewMatrix();
     m_Projection = m_Camera.GetProjectionMatrix((float)dwWidth / (float)dwHeight);
     m_ViewProj = DirectX::XMMatrixMultiply(m_View, m_Projection);
@@ -236,12 +224,18 @@ void CRenderer::Render() {
     hw.m_Context->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
     //-- set rasterizer state to disable backface culling (vroid models shit)
-    hw.m_Context->RSSetState(m_RasterState);
+	if (scene.m_bWireframe)
+		hw.m_Context->RSSetState(m_RasterStateWireframe);
+	else
+        hw.m_Context->RSSetState(m_RasterState);
 
     //-- Debug grid
     m_debugRenderer.SetRenderPhase(ePhaseBeforeScene);
-    DebugDrawGrid(hw.m_Context, m_debugRenderer, 25, 1);
-    m_debugRenderer.Render(hw.m_Context, m_ViewProj);
+
+    if(scene.m_bDrawGrid)
+        DebugDrawGrid(hw.m_Context, m_debugRenderer, 10, 1);
+    
+    m_debugRenderer.Render(hw.m_Context, m_ViewProj, true);
 
     //-- Light data setup
     LightCB lightData = { lightDir, 0.0f, lightColor,  camPos , specularPower };
@@ -251,15 +245,24 @@ void CRenderer::Render() {
     //-- simple models rendering
     hw.m_Context->OMSetDepthStencilState(m_DepthStencilState, 1);
     hw.m_Context->OMSetBlendState(nullptr, 0, 0xffffffff);
-    m_Model.Render(hw.m_Context);
-    m_Model2.Render(hw.m_Context);
+
+    for (auto& model : scene.GetModels())
+        model->Render(hw.m_Context);
 
     float blendFactor[4] = { 0.f, 0.f, 0.f, 0.f };
     hw.m_Context->OMSetDepthStencilState(m_DepthStencilTransparent, 1);
     hw.m_Context->OMSetBlendState(m_AlphaBlendState, blendFactor, 0xffffffff);
-    m_Model.Render(hw.m_Context, true);
-    m_Model2.Render(hw.m_Context, true); 
+    for (auto& model : scene.GetModels())
+        model->Render(hw.m_Context, true);
 
     hw.m_Context->OMSetDepthStencilState(nullptr, 1);
     hw.m_Context->OMSetBlendState(nullptr, 0, 0xffffffff);
+
+    /*
+    m_debugRenderer.SetRenderPhase(ePhaseAfterScene);
+	for (auto& model : scene.GetModels())
+		if (model->m_Skeleton.m_BoneCount)
+        m_debugRenderer.DrawBoneAxis(hw.m_Context, *model->m_Skeleton.GetRootBone(), 0.5f);
+
+    m_debugRenderer.Render(hw.m_Context, m_ViewProj, true);*/
 }

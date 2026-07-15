@@ -141,6 +141,7 @@
     <ClInclude Include="src\Render\AssimpHelper\AssimpFunctions.h" />
     <ClInclude Include="src\Render\CHW.h" />
     <ClInclude Include="src\Render\CRenderer.h" />
+    <ClInclude Include="src\Render\CScene.h" />
     <ClInclude Include="src\Render\CShaderContainer.h" />
     <ClInclude Include="src\Render\CDebugRenderer.h" />
     <ClInclude Include="src\Render\Model\CMesh.h" />
@@ -156,6 +157,7 @@
     <ClInclude Include="src\UI\CImGuiWindow.h" />
     <ClInclude Include="src\UI\CUILog.h" />
     <ClInclude Include="src\UI\CUIMain.h" />
+    <ClInclude Include="src\UI\CUIScene.h" />
     <ClInclude Include="src\UI\CUISceneSettings.h" />
     <ClInclude Include="src\UI\CUIViewport.h" />
     <ClInclude Include="src\_defines.h" />
@@ -174,6 +176,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Render\CHW.cpp" />
     <ClCompile Include="src\Render\CRenderer.cpp" />
+    <ClCompile Include="src\Render\CScene.cpp" />
     <ClCompile Include="src\Render\CShaderContainer.cpp" />
     <ClCompile Include="src\Render\CDebugRenderer.cpp" />
     <ClCompile Include="src\Render\Model\CMesh.cpp" />
@@ -187,6 +190,7 @@
     <ClCompile Include="src\UI\CImGuiWindow.cpp" />
     <ClCompile Include="src\UI\CUILog.cpp" />
     <ClCompile Include="src\UI\CUIMain.cpp" />
+    <ClCompile Include="src\UI\CUIScene.cpp" />
     <ClCompile Include="src\UI\CUISceneSettings.cpp" />
     <ClCompile Include="src\UI\CUIViewport.cpp" />
   </ItemGroup>

@@ -26,7 +26,6 @@ public:
 	bool Init(UINT dwW, UINT dwH);
 
 	void Render();
-	void LoadScene();
 	void Resize(UINT dwW, UINT dwH);
 
 	float m_ClearColor[4]{ 0.5f, 0.5f, 0.5f, 1.0f };
@@ -51,9 +50,6 @@ public:
 	float dwWidth{}, dwHeight{};
 private:
 
-	CModel m_Model;
-	CModel m_Model2;
-
 	ID3D11Texture2D* m_DepthStencilBuffer{};
 	ID3D11DepthStencilView* m_DepthStencilView{};
 
@@ -61,6 +57,7 @@ private:
 	CDebugRenderer m_debugRenderer;
 
 	ID3D11RasterizerState* m_RasterState{};
+	ID3D11RasterizerState* m_RasterStateWireframe{};
 	ID3D11DepthStencilState* m_DepthStencilState{};
 	ID3D11DepthStencilState* m_DepthStencilTransparent{};
 	ID3D11BlendState* m_AlphaBlendState{};

@@ -49,4 +49,8 @@ public:
     bool m_moveRight;
     bool m_moveUp;
     bool m_moveDown;
+
+
+	float zNear;
+	float zFar;
 };
