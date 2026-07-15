@@ -27,7 +27,8 @@ public:
 	void Render();
 	void Resize(UINT width, UINT height);
 
-	void DrawDockSpace();
+	void DrawDockSpace(); 
+	void ApplyModernStyle();
 
 	bool m_bResize{};
 	bool m_bFirstFrame{};
