@@ -67,3 +67,15 @@ CModel* CScene::LoadModel(const std::string& path) {
 	m_Models.push_back(model);
 	return model;
 }
+
+CModel* CScene::LoadModelFromOGF(const std::string& path) {
+	CHW& hw = CHW::Get();
+	CModel* model = new CModel();
+	if (!model->LoadFromOGF(hw.m_Device, path)) {
+		LogMsg(eLogLevel::ERR, "CScene::LoadModelFromOGF: Model[%s] was not loaded!", path.c_str());
+		delete model;
+		return nullptr;
+	}
+	m_Models.push_back(model);
+	return model;
+}

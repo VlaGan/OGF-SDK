@@ -12,6 +12,7 @@
 #include "../_render_structs.h"
 #include "../CRenderer.h"
 #include "CMotion.h"
+#include "OGF/COgfLoader.h"
 
 
 extern void LogMsg(const char* fmt, ...);
@@ -222,6 +223,72 @@ bool CModel::LoadFromFile(ID3D11Device* device, const std::string& path)
     SetMotion(&m_vMotions[0]);
 
     //-- bones buffer
+    m_BoneBuffer.Create(device, sizeof(DirectX::XMMATRIX) * MAX_BONES);
+
+    return true;
+}
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+//-- VlaGan: Native .ogf Model Loading (no Assimp)
+//----------------------------------------------------------------------------
+bool CModel::LoadFromOGF(ID3D11Device* device, const std::string& path)
+{
+    SOgfModel ogf;
+    if (!COgfLoader::Load(path, ogf)) {
+        MessageBox(nullptr, L"CModel::LoadFromOGF: failed to parse .ogf file", L"Error", MB_OK);
+        return false;
+    }
+
+    if (ogf.meshes.empty()) {
+        LogMsg(eLogLevel::ERR, "!CModel::LoadFromOGF: model [%s] has no supported geometry", path.c_str());
+        return false;
+    }
+
+    //-- native path doesn't use Assimp: motion playback (TraverseHierarchy)
+    //-- stays disabled (Update() checks `scene` before touching it) until
+    //-- .omf motion loading is added; the model still renders in bind pose.
+    scene = nullptr;
+
+    m_modelPath = path;
+    size_t slashPos = path.find_last_of("/\\");
+    m_modelName = (slashPos == std::string::npos) ? path : path.substr(slashPos + 1);
+    size_t dotPos = m_modelName.find_last_of('.');
+    if (dotPos != std::string::npos)
+        m_modelName = m_modelName.substr(0, dotPos);
+
+    LogMsg("!Loading model [%s] (native .ogf).", m_modelName.c_str());
+
+    if (!ogf.bones.empty())
+        m_Skeleton.LoadFromOGF(ogf.bones);
+
+    m_Meshes.clear();
+    m_Meshes.reserve(ogf.meshes.size());
+
+    for (auto& src : ogf.meshes) {
+        CMesh meshObj;
+
+        //-- OGF texture names carry no path/extension - textures are still
+        //-- expected as pre-converted PNGs under appdata/textures/<model>/,
+        //-- same convention LoadFromFile() uses for the Assimp path.
+        std::string baseName = src.textureName;
+        size_t bs = baseName.find_last_of("/\\");
+        if (bs != std::string::npos)
+            baseName = baseName.substr(bs + 1);
+        std::string texture = "appdata/textures/" + m_modelName + "/" + baseName + ".png";
+
+        if (!meshObj.InitFromRaw(device, std::move(src.vertices), src.indices, texture)) {
+            LogMsg(eLogLevel::ERR, "~CModel::LoadFromOGF: cant load mesh for model [%s]", m_modelName.c_str());
+            continue;
+        }
+
+        m_Meshes.push_back(std::move(meshObj));
+    }
+
+    if (m_Meshes.empty())
+        return false;
+
+    //-- bones buffer (bound even for static meshes, matches LoadFromFile())
     m_BoneBuffer.Create(device, sizeof(DirectX::XMMATRIX) * MAX_BONES);
 
     return true;

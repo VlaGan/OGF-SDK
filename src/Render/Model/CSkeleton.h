@@ -10,6 +10,7 @@
 #include <wtypes.h>
 #include <unordered_map>
 #include <assimp/scene.h>
+#include "OGF/COgfModel.h"
 
 struct CBoneInstance {
 	UINT m_bBoneID;					       // bone ID
@@ -52,6 +53,10 @@ public:
 
 	//-- load skeleton
 	void Load(const aiScene* scene);
+
+	//-- native .ogf skeleton loading (bones already come with a resolved
+	//-- parentIndex and a bind-pose rotation/position, see COgfLoader)
+	void LoadFromOGF(const std::vector<SOgfBoneDef>& ogfBones);
 
 	//-- default methods
 	INL CBoneInstance* GetRootBone() { return &m_vBones[0]; }

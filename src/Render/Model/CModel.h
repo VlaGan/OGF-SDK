@@ -24,6 +24,14 @@ public:
     ~CModel();
 
     bool LoadFromFile(ID3D11Device* device, const std::string& path);
+
+    //-- native .ogf loading (no Assimp): parses the file directly via
+    //-- COgfLoader and builds CMesh/CSkeleton from it. Bind-pose skinning
+    //-- works out of the box; motion (.omf) playback is not implemented yet,
+    //-- so `scene` stays null and TraverseHierarchy()/Update() simply keeps
+    //-- rendering the bind pose via UpdateSkeleton().
+    bool LoadFromOGF(ID3D11Device* device, const std::string& path);
+
     void Render(ID3D11DeviceContext* context, bool transparent = false);
     void RenderShadowMap(ID3D11DeviceContext* context);
 

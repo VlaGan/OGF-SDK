@@ -24,6 +24,12 @@ public:
     CMesh& operator=(CMesh&& other) noexcept;
 
     bool Init(ID3D11Device* device, aiMesh* mesh, std::string texture_name);
+
+    //-- Same as Init(), but the vertex/index data is already prepared (e.g. by
+    //-- COgfLoader when reading a native .ogf file) instead of coming from an
+    //-- Assimp aiMesh. `vertices`/`indices` are consumed (moved from).
+    bool InitFromRaw(ID3D11Device* device, std::vector<Vertex> vertices, std::vector<UINT> indices, std::string texture_name);
+
     void Render(ID3D11DeviceContext* context);
     void RenderSM(ID3D11DeviceContext* context);
     void RenderGBuffer(ID3D11DeviceContext* context);
@@ -34,6 +40,15 @@ public:
     void SetShadowShader(ID3D11Device* device, const std::wstring& filePath);
 
     void UpdateVertexBuffer(ID3D11Device* device);
+
+private:
+    //-- shared by Init() and InitFromRaw(): loads `texture_name` (falls back to
+    //-- appdata/textures/image.png on failure) into m_Texture/m_Sampler and
+    //-- fills m_IsTransparent/m_TextureName.
+    bool LoadTextureResource(ID3D11Device* device, const std::string& texture_name);
+
+    //-- shared by Init() and InitFromRaw(): creates the skinned/GBuffer/shadow shaders
+    void CreateDefaultShaders(ID3D11Device* device);
 
 public:
     //-- Index/Vertex Buffer and etc.

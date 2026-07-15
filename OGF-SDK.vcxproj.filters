@@ -37,6 +37,9 @@
     <Filter Include="Render\Assimp">
       <UniqueIdentifier>{239cbb8d-f7ef-4554-885d-e0b336ca4f0e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Render\Model\OGF">
+      <UniqueIdentifier>{46c727b0-72ed-40e7-9e90-08c4f78d143b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\OGF_SDK.h">
@@ -119,6 +122,18 @@
     </ClInclude>
     <ClInclude Include="src\UI\CUISelectedItem.h">
       <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\OGF\COgfChunkedReader.h">
+      <Filter>Render\Model\OGF</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\OGF\COgfLoader.h">
+      <Filter>Render\Model\OGF</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\OGF\COgfModel.h">
+      <Filter>Render\Model\OGF</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\OGF\ogf_format.h">
+      <Filter>Render\Model\OGF</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -214,6 +229,12 @@
     </ClCompile>
     <ClCompile Include="src\UI\CUISelectedItem.cpp">
       <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\OGF\COgfChunkedReader.cpp">
+      <Filter>Render\Model\OGF</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\OGF\COgfLoader.cpp">
+      <Filter>Render\Model\OGF</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

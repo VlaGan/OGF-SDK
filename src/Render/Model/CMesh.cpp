@@ -177,6 +177,22 @@ bool CMesh::Init(ID3D11Device* device, aiMesh* mesh, std::string texture_name) {
     if (FAILED(ihr)) return false;
     m_IndexCount = (UINT)m_vIndices.size();
 
+    CreateDefaultShaders(device);
+
+    if (!LoadTextureResource(device, texture_name))
+        return false;
+
+    LogMsg("-CMesh::Init: succesfully loaded mesh!");
+
+    LogMsg("Mesh info: verticies [%d], indicies [%d]", m_VertexCount, m_IndexCount);
+
+	return true;
+}
+
+//----------------------------------------------------------------------------
+//-- shared helpers (used by Init() and InitFromRaw())
+//----------------------------------------------------------------------------
+void CMesh::CreateDefaultShaders(ID3D11Device* device) {
     D3D11_INPUT_ELEMENT_DESC layout[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -184,12 +200,13 @@ bool CMesh::Init(ID3D11Device* device, aiMesh* mesh, std::string texture_name) {
         { "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_SINT, 0, offsetof(Vertex, boneIDs), D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "BLENDWEIGHT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT,0, offsetof(Vertex, weights), D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
-    //m_Shader.LoadFromFile(device, L"appdata/shaders/skinned.hlsl", "VSMain", "PSMain", layout, ARRAYSIZE(layout));
 
     m_Shader = CShaderContainer::Get().GetOrLoad(device, L"appdata/shaders/skinned.hlsl", "VSMain", "PSMain", layout, ARRAYSIZE(layout));
     m_ShaderSM = CShaderContainer::Get().GetOrLoad(device, L"appdata/shaders/skinned_shadow_map.hlsl", "VSMain", "PSMain", layout, ARRAYSIZE(layout));
     m_ShaderGBuffer = CShaderContainer::Get().GetOrLoad(device, L"appdata/shaders/GBuffer.hlsl", "VSMain", "PSMain", layout, ARRAYSIZE(layout));
+}
 
+bool CMesh::LoadTextureResource(ID3D11Device* device, const std::string& texture_name) {
     //-- simple example texture loading (later should be CTexture class or CTexture container manager)
     int x, y, channels_in_file;
     stbi_info(texture_name.c_str(), &x, &y, &channels_in_file);
@@ -197,15 +214,17 @@ bool CMesh::Init(ID3D11Device* device, aiMesh* mesh, std::string texture_name) {
     int w, h, channels;
     unsigned char* data = stbi_load(texture_name.c_str(), &w, &h, &channels, STBI_rgb_alpha);
     if (!data) {
-        LogMsg("!CMesh::Init: cant load texture[%s] fall back to default[image.png]", texture_name.c_str());
+        LogMsg(eLogLevel::ERR, "!CMesh::LoadTextureResource: cant load texture[%s] fall back to default[image.png]", texture_name.c_str());
         data = stbi_load("appdata/textures/image.png", &w, &h, &channels, STBI_rgb_alpha);
     }
+    if (!data)
+        return false;
+
     m_TextureName = texture_name;
 
     m_IsTransparent = IsTextureTransparent(data, w, h, channels);
     if (m_IsTransparent)
         LogMsg("!!!Transparent texture found [%s]", texture_name.c_str());
-
 
     D3D11_TEXTURE2D_DESC desc = {};
     desc.Width = w;
@@ -224,22 +243,24 @@ bool CMesh::Init(ID3D11Device* device, aiMesh* mesh, std::string texture_name) {
     initTex.SysMemPitch = w * 4;
 
     ID3D11Texture2D* texture = nullptr;
-     hr = device->CreateTexture2D(&desc, &initTex, &texture);
+    HRESULT hr = device->CreateTexture2D(&desc, &initTex, &texture);
     if (FAILED(hr)) {
         MessageBox(nullptr, L"CreateTexture2D failed", L"Error", MB_OK);
+        stbi_image_free(data);
         return false;
     }
 
     hr = device->CreateShaderResourceView(texture, nullptr, &m_Texture);
     if (FAILED(hr)) {
         MessageBox(nullptr, L"CreateShaderResourceView failed", L"Error", MB_OK);
+        texture->Release();
+        stbi_image_free(data);
         return false;
     }
-    if(texture)
-    texture->Release();
+    if (texture)
+        texture->Release();
     stbi_image_free(data);
 
-    // Create sampler
     D3D11_SAMPLER_DESC sampDesc = {};
     sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -247,12 +268,55 @@ bool CMesh::Init(ID3D11Device* device, aiMesh* mesh, std::string texture_name) {
     sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 
     device->CreateSamplerState(&sampDesc, &m_Sampler);
+    return true;
+}
 
-    LogMsg("-CMesh::Init: succesfully loaded mesh!");
+//----------------------------------------------------------------------------
+//-- native (non-Assimp) geometry loading - used by COgfLoader for .ogf files
+//----------------------------------------------------------------------------
+bool CMesh::InitFromRaw(ID3D11Device* device, std::vector<Vertex> vertices, std::vector<UINT> indices, std::string texture_name) {
+    if (vertices.empty() || indices.empty()) {
+        LogMsg(eLogLevel::ERR, "!CMesh::InitFromRaw: empty vertex/index data for texture[%s]", texture_name.c_str());
+        return false;
+    }
 
-    LogMsg("Mesh info: verticies [%d], indicies [%d]", m_VertexCount, m_IndexCount);
+    m_vVertices = std::move(vertices);
+    m_vIndices = std::move(indices);
 
-	return true;
+    D3D11_BUFFER_DESC bd = {};
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = UINT(sizeof(Vertex) * m_vVertices.size());
+    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA initData = {};
+    initData.pSysMem = m_vVertices.data();
+
+    HRESULT hr = device->CreateBuffer(&bd, &initData, &m_VertexBuffer);
+    if (FAILED(hr)) return false;
+
+    m_VertexCount = (UINT)m_vVertices.size();
+
+    D3D11_BUFFER_DESC ibd = {};
+    ibd.Usage = D3D11_USAGE_DEFAULT;
+    ibd.ByteWidth = UINT(sizeof(UINT) * m_vIndices.size());
+    ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA iinit = {};
+    iinit.pSysMem = m_vIndices.data();
+
+    HRESULT ihr = device->CreateBuffer(&ibd, &iinit, &m_IndexBuffer);
+    if (FAILED(ihr)) return false;
+    m_IndexCount = (UINT)m_vIndices.size();
+
+    CreateDefaultShaders(device);
+
+    if (!LoadTextureResource(device, texture_name))
+        return false;
+
+    LogMsg(eLogLevel::WARNING, "-CMesh::InitFromRaw: succesfully loaded mesh!");
+    LogMsg(eLogLevel::WARNING, "Mesh info: verticies [%d], indicies [%d]", m_VertexCount, m_IndexCount);
+
+    return true;
 }
 
 //-- pos, normal and uvs defined in CMesh::Init, but bones and weight for skinning in CModel

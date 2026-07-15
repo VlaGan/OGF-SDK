@@ -197,3 +197,91 @@ void CSkeleton::Load(const aiScene* scene) {
     LogMsg("--CSkeleton::Load succesfully completed!");
     LogMsg("//-----------------------------------------------------");
 }
+
+//----------------------------------------------------------------------------
+//-- native .ogf bone local transform: matches OGSR-Engine's
+//-- CBoneData::bind_transform.setXYZi(rotation); translate_over(position);
+//-- (X-Ray's "XYZi" Euler convention is h=-y, p=-x, b=-z, applied Y*X*Z)
+//----------------------------------------------------------------------------
+static DirectX::XMMATRIX OgfBoneLocalTransform(const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& position) {
+    using namespace DirectX;
+    const XMMATRIX rot = XMMatrixRotationZ(-rotation.z) * XMMatrixRotationX(-rotation.x) * XMMatrixRotationY(-rotation.y);
+    const XMMATRIX trans = XMMatrixTranslation(position.x, position.y, position.z);
+    return rot * trans;
+}
+
+//-- recursively computes bind-pose mGlobalTransform/mOffsetTransform (inverse
+//-- bind pose) top-down, starting from the root bone
+static void CalcOgfBindPose(CBoneInstance* bone, const DirectX::XMMATRIX& parentTransform) {
+    bone->mGlobalTransform = bone->mLocalTransform * parentTransform;
+    bone->mOffsetTransform = DirectX::XMMatrixInverse(nullptr, bone->mGlobalTransform);
+    bone->mRenderTransform = bone->mOffsetTransform * bone->mGlobalTransform; //-- identity at bind pose
+    DirectX::XMStoreFloat3(&bone->m_vWorldPosition, bone->mGlobalTransform.r[3]);
+    bone->m_vCurrentPos = bone->m_vWorldPosition;
+    bone->m_vPrevPos = bone->m_vWorldPosition;
+
+    for (auto* child : bone->m_vChilds)
+        CalcOgfBindPose(child, bone->mGlobalTransform);
+}
+
+//-- native .ogf skeleton loading
+void CSkeleton::LoadFromOGF(const std::vector<SOgfBoneDef>& ogfBones) {
+
+    LogMsg("//-----------------------------------------------------");
+    LogMsg("--CSkeleton::LoadFromOGF - Loading Skeleton");
+    LogMsg("//-----------------------------------------------------");
+
+    Release();
+
+    m_BoneCount = (u32)ogfBones.size();
+    if (!m_BoneCount) {
+        LogMsg("!CSkeleton::LoadFromOGF: no bones to load");
+        return;
+    }
+
+    //-- resize (not push_back!) up front: CBoneInstance parent/child links are
+    //-- raw pointers into this vector, they must not be invalidated by growth
+    m_vBones.resize(m_BoneCount);
+
+    for (u32 i = 0; i < m_BoneCount; ++i) {
+        const SOgfBoneDef& src = ogfBones[i];
+        CBoneInstance& bi = m_vBones[i];
+
+        bi.m_bBoneID = i;
+        bi.m_sBoneName = src.name;
+        bi.mLocalTransform = OgfBoneLocalTransform(src.rotation, src.position);
+        bi.mLocalTransformIK = bi.mLocalTransform;
+        bi.mIKTrans = bi.mLocalTransform;
+        bi.isIK = false;
+        bi.m_pParent = nullptr; // resolved below
+    }
+
+    int rootIndex = -1;
+    for (u32 i = 0; i < m_BoneCount; ++i) {
+        const SOgfBoneDef& src = ogfBones[i];
+        if (src.parentIndex < 0) {
+            if (rootIndex < 0)
+                rootIndex = (int)i; // first parentless bone becomes the render root
+            continue;
+        }
+        CBoneInstance* parent = &m_vBones[src.parentIndex];
+        m_vBones[i].m_pParent = parent;
+        parent->m_vChilds.push_back(&m_vBones[i]);
+    }
+
+    if (rootIndex < 0) {
+        LogMsg("!CSkeleton::LoadFromOGF: no root (parentless) bone found, using bone 0");
+        rootIndex = 0;
+    }
+    //-- NOTE: CSkeleton::GetRootBone() hardcodes m_vBones[0] as the render
+    //-- root, so a non-zero rootIndex here would desync from CModel::Update().
+    //-- In practice every known .ogf exports the root bone first, but warn if not.
+    if (rootIndex != 0)
+        LogMsg("~CSkeleton::LoadFromOGF: root bone is [%s] at index %d, not 0 - GetRootBone() will be wrong!", ogfBones[rootIndex].name.c_str(), rootIndex);
+
+    m_BonesNode = &m_vBones[rootIndex];
+    CalcOgfBindPose(m_BonesNode, DirectX::XMMatrixIdentity());
+
+    LogMsg("--CSkeleton::LoadFromOGF: loaded %u bone(s), root [%s]", m_BoneCount, m_BonesNode->m_sBoneName.c_str());
+    LogMsg("//-----------------------------------------------------");
+}

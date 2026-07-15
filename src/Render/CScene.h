@@ -22,6 +22,7 @@ public:
 	void ClearScene();
 
 	CModel* LoadModel(const std::string& path);
+	CModel* LoadModelFromOGF(const std::string& path);
 	void DeleteModel(CModel* model);
 
 	std::vector<CModel*>& GetModels() { return m_Models; }
