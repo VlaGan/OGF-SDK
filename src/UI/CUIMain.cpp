@@ -14,6 +14,7 @@
 #include "CUISceneSettings.h"
 #include "CUIScene.h"
 #include "CUISelectedItem.h"
+#include <fontawesome/IconsFontAwesome6.h>
 
 //-------------------------------------------------------------------------
 //-- Ctor / Dtor
@@ -163,11 +164,23 @@ void CUIMain::Init(HWND hwnd)
     io.IniFilename = "userdata\\imgui.ini"; // disable ini file
 
     // --- Font ----------------------------------------------------------
+    // Base UI font: Segoe UI (falls back to ImGui's default if missing).
     ImFontConfig fontCfg;
     fontCfg.OversampleH = 3;
     fontCfg.OversampleV = 3;
     fontCfg.RasterizerMultiply = 1.05f;
     io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\segoeui.ttf", 17.0f, &fontCfg);
+
+    // Merge FontAwesome 6 (solid) glyphs into the same font so icons can be
+    // dropped straight into any text/label string, like ICON_FA_FLOPPY_DISK " Save".
+    static const ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_16_FA, 0 };
+    ImFontConfig iconCfg;
+    iconCfg.MergeMode = true;
+    iconCfg.PixelSnapH = true;
+    iconCfg.GlyphMinAdvanceX = 17.0f; // keep icons monospaced-ish next to text
+    iconCfg.GlyphOffset = ImVec2(0.0f, 1.0f);
+    io.Fonts->AddFontFromFileTTF("appdata\\fonts\\fa-solid-900.ttf", 15.0f, &iconCfg, iconRanges);
+
     io.Fonts->Build();
 
     // --- Style -----------------------------------------------------------
@@ -241,34 +254,34 @@ void CUIMain::Render()
     if (ImGui::BeginMainMenuBar()) {
 
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.361f, 0.867f, 0.796f, 1.0f));
-        ImGui::TextUnformatted("OGF-SDK");
+        ImGui::TextUnformatted(ICON_FA_CUBES "  OGF-SDK");
         ImGui::PopStyleColor();
         ImGui::Separator();
 
-        if (ImGui::BeginMenu("File")) {
-            ImGui::MenuItem("New");
-            ImGui::MenuItem("Open");
-            ImGui::MenuItem("Save");
+        if (ImGui::BeginMenu(ICON_FA_FILE "  File")) {
+            ImGui::MenuItem(ICON_FA_FILE "  New");
+            ImGui::MenuItem(ICON_FA_FOLDER_OPEN "  Open");
+            ImGui::MenuItem(ICON_FA_FLOPPY_DISK "  Save");
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Edit")) {
-            ImGui::MenuItem("Undo");
-            ImGui::MenuItem("Redo");
+        if (ImGui::BeginMenu(ICON_FA_PEN "  Edit")) {
+            ImGui::MenuItem(ICON_FA_ROTATE_LEFT "  Undo");
+            ImGui::MenuItem(ICON_FA_ROTATE_RIGHT "  Redo");
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("View")) {
+        if (ImGui::BeginMenu(ICON_FA_EYE "  View")) {
 
             for (auto& window : m_Windows)
-                ImGui::MenuItem(window->m_Name.c_str(), nullptr, &window->m_Opened);
+                ImGui::MenuItem(window->TitleWithIcon().c_str(), nullptr, &window->m_Opened);
 
             ImGui::EndMenu();
         }
 
         //-- right-aligned FPS readout
         char fpsBuf[32];
-        snprintf(fpsBuf, sizeof(fpsBuf), "%.0f FPS", ImGui::GetIO().Framerate);
+        snprintf(fpsBuf, sizeof(fpsBuf), ICON_FA_GAUGE_HIGH "  %.0f FPS", ImGui::GetIO().Framerate);
         float fpsWidth = ImGui::CalcTextSize(fpsBuf).x;
         ImGui::SetCursorPosX(ImGui::GetWindowWidth() - fpsWidth - 16.0f);
         ImGui::TextDisabled("%s", fpsBuf);

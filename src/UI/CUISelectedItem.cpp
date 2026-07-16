@@ -4,20 +4,21 @@
 #include "CUISelectedItem.h"
 #include "../Render/CScene.h"
 #include "../Render/Model/CModel.h"
+#include <fontawesome/IconsFontAwesome6.h>
 
 void CUISelectedItemProp::RenderContent()
 {
 	auto& scene = CScene::Get();
 
 	if (!scene.m_SelectedModel) {
-		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "No item selected!");
+		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), ICON_FA_CIRCLE_XMARK "  No item selected!");
 		return;
 	}
 
 	CModel* model = scene.m_SelectedModel;
 
 	// Transform Section
-	if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
+	if (ImGui::CollapsingHeader(ICON_FA_UP_DOWN_LEFT_RIGHT "  Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::InputFloat3("Position", (float*)&model->m_Position.x);
 		ImGui::InputFloat3("Rotation (rad)", (float*)&model->m_Rotation.x);
 		ImGui::InputFloat3("Scale", (float*)&model->m_Scale.x);
@@ -25,7 +26,7 @@ void CUISelectedItemProp::RenderContent()
 	}
 
 	// Animation Section
-	if (ImGui::CollapsingHeader("Animation", ImGuiTreeNodeFlags_DefaultOpen)) {
+	if (ImGui::CollapsingHeader(ICON_FA_PERSON_RUNNING "  Animation", ImGuiTreeNodeFlags_DefaultOpen)) {
 		if (!model->m_vMotions.empty()) {
 			// Motion Selection Dropdown
 			static int current_motion_index = 0;
@@ -45,18 +46,18 @@ void CUISelectedItemProp::RenderContent()
 				ImGui::EndCombo();
 			}
 
-			ImGui::Text("Motions: %zu available", model->m_vMotions.size());
+			ImGui::Text(ICON_FA_FILM "  Motions: %zu available", model->m_vMotions.size());
 
 			if (model->m_pCurrentMotion) {
-				ImGui::Text("Duration: %.2f sec", model->m_pCurrentMotion->Duration());
-				ImGui::Text("Current Time: %.2f sec", model->m_CurrentTime);
-				ImGui::Text("Ticks Per Second: %.2f", model->m_pCurrentMotion->TPS());
+				ImGui::Text(ICON_FA_STOPWATCH "  Duration: %.2f sec", model->m_pCurrentMotion->Duration());
+				ImGui::Text(ICON_FA_CLOCK "  Current Time: %.2f sec", model->m_CurrentTime);
+				ImGui::Text(ICON_FA_GAUGE_HIGH "  Ticks Per Second: %.2f", model->m_pCurrentMotion->TPS());
 			} else {
-				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "No animation playing");
+				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), ICON_FA_TRIANGLE_EXCLAMATION "  No animation playing");
 			}
 			ImGui::Separator();
 		} else {
-			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "No animations loaded");
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), ICON_FA_TRIANGLE_EXCLAMATION "  No animations loaded");
 			ImGui::Separator();
 		}
 	}

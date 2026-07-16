@@ -7,6 +7,7 @@
 #include "../Render/CHW.h"
 #include "../Render/CRenderer.h"
 #include "../Core/CCamera.h"
+#include <fontawesome/IconsFontAwesome6.h>
 
 extern CCamera m_Camera;
 //-------------------------------------------------------------------------
@@ -32,11 +33,11 @@ void CUIViewPort::RenderContent()
         ImGui::Image(rt->m_SRV, size);
 
     ImGui::SetCursorPos(ImVec2(15, 45));
-    ImGui::Text("VP size: [%.0f, %.0f]", size.x, size.y);
-    ImGui::Text("Camera Pos: [%.2f, %.2f, %.2f]", VPUSH3(m_Camera.m_position));
+    ImGui::Text(ICON_FA_UP_DOWN_LEFT_RIGHT "  VP size: [%.0f, %.0f]", size.x, size.y);
+    ImGui::Text(ICON_FA_CAMERA "  Camera Pos: [%.2f, %.2f, %.2f]", VPUSH3(m_Camera.m_position));
 
     ImVec2 cursorPos = ImGui::GetCursorPos();
-    std::string inputText = std::format("Move: W/S/A/D\nUp/Down: Space/Ctrl\nDirection: Mouse RB+LB");
+    std::string inputText = std::format(ICON_FA_KEYBOARD "  Move: W/S/A/D\nUp/Down: Space/Ctrl\nDirection: Mouse RB+LB");
     ImVec2 textSize = ImGui::CalcTextSize(inputText.c_str());
     ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvail().x - textSize.x, 45));
     ImGui::Text(inputText.c_str());

@@ -3,11 +3,12 @@
 //----------------------------------------------------------------------------
 #pragma once
 #include "CImGuiWindow.h"
+#include <fontawesome/IconsFontAwesome6.h>
 
 class CUILog: public CImGuiWindow {
 public:
 	CUILog() : CUILog("Log") {};
-	CUILog(std::string name) : CImGuiWindow(name) {};
+	CUILog(std::string name) : CImGuiWindow(name) { m_Icon = ICON_FA_TERMINAL; };
 	CUILog(const CUILog&) = delete;
 	CUILog& operator=(const CUILog&) = delete;
 

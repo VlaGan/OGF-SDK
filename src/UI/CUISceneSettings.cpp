@@ -3,6 +3,7 @@
 //----------------------------------------------------------------------------
 #include "CUISceneSettings.h"
 #include "../Render/CRenderer.h"
+#include <fontawesome/IconsFontAwesome6.h>
 
 #include "../Core/CCamera.h"
 
@@ -10,7 +11,7 @@ extern CCamera m_Camera;
 
 void CUISceneSettings::RenderContent()
 {
-    if (ImGui::CollapsingHeader("Genearal", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader(ICON_FA_GEAR "  Genearal", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         ImGuiColorEditFlags color_flags =
             ImGuiColorEditFlags_NoSidePreview |
@@ -18,17 +19,17 @@ void CUISceneSettings::RenderContent()
             ImGuiColorEditFlags_PickerHueBar;
 
         CRenderer& renderer = CRenderer::Get();
-        ImGui::Text("Background rt color:");
+        ImGui::Text(ICON_FA_PALETTE "  Background rt color:");
         ImGui::ColorPicker4("##Color", renderer.m_ClearColor, 0);
         ImGui::Separator();
     }
 
-    if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_None)) {
+    if (ImGui::CollapsingHeader(ICON_FA_CAMERA "  Camera", ImGuiTreeNodeFlags_None)) {
 
         std::string camera_mode = m_Camera.m_mode == 
             eCameraProjMode::ePerspective ? "Perspective" : "Orthogonal";
 
-        if (ImGui::Button("Camera mode:")) {
+        if (ImGui::Button(ICON_FA_ROTATE_RIGHT "  Camera mode:")) {
             m_Camera.m_mode = m_Camera.m_mode ==
                 eCameraProjMode::ePerspective ? eCameraProjMode::Orthographic : eCameraProjMode::ePerspective;
         }

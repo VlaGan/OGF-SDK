@@ -3,24 +3,25 @@
 //----------------------------------------------------------------------------
 #include "CUILog.h"
 #include "../Core/CLog.h"
+#include <fontawesome/IconsFontAwesome6.h>
 
 void CUILog::RenderContent()
 {
     CLog& log = CLog::Get();
 
-    if (ImGui::Button("Clear"))
+    if (ImGui::Button(ICON_FA_BROOM "  Clear"))
         log.Clear();
 
     ImGui::SameLine();
-    ImGui::Checkbox("Auto-scroll", &m_AutoScroll); //-- simple imgui window class needed
+    ImGui::Checkbox(ICON_FA_ARROWS_DOWN_TO_LINE "  Auto-scroll", &m_AutoScroll); //-- simple imgui window class needed
     ImGui::SameLine();
-    ImGui::Checkbox("Info", &m_ShowInfo);
+    ImGui::Checkbox(ICON_FA_CIRCLE_INFO "  Info", &m_ShowInfo);
     ImGui::SameLine();
-    ImGui::Checkbox("Warning", &m_ShowWarning);
+    ImGui::Checkbox(ICON_FA_TRIANGLE_EXCLAMATION "  Warning", &m_ShowWarning);
     ImGui::SameLine();
-    ImGui::Checkbox("Error", &m_ShowError);
+    ImGui::Checkbox(ICON_FA_CIRCLE_XMARK "  Error", &m_ShowError);
     ImGui::SameLine();
-    ImGui::Checkbox("Debug", &m_ShowDebug);
+    ImGui::Checkbox(ICON_FA_BUG "  Debug", &m_ShowDebug);
 
     ImGui::Separator();
 
@@ -36,14 +37,16 @@ void CUILog::RenderContent()
         }
 
         ImVec4 color;
+        const char* icon;
         switch (entry.type) {
-        case eLogLevel::WARNING: color = ImVec4(1.0f, 0.8f, 0.2f, 1.0f); break;
-        case eLogLevel::ERR:     color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f); break;
-        case eLogLevel::DEBUG:   color = ImVec4(0.6f, 0.6f, 0.6f, 1.0f); break;
-        default:      color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); break;
+        case eLogLevel::WARNING: color = ImVec4(1.0f, 0.8f, 0.2f, 1.0f); icon = ICON_FA_TRIANGLE_EXCLAMATION; break;
+        case eLogLevel::ERR:     color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f); icon = ICON_FA_CIRCLE_XMARK; break;
+        case eLogLevel::DEBUG:   color = ImVec4(0.6f, 0.6f, 0.6f, 1.0f); icon = ICON_FA_BUG; break;
+        default:      color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); icon = ICON_FA_CIRCLE_INFO; break;
         }
 
-        ImGui::TextColored(color, "[%s] [%s] %s",
+        ImGui::TextColored(color, "%s [%s] [%s] %s",
+            icon,
             entry.timestamp.c_str(),
             log.LevelToString(entry.type),
             entry.message.c_str());

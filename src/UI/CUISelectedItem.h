@@ -3,11 +3,12 @@
 //----------------------------------------------------------------------------
 #pragma once
 #include "CImGuiWindow.h"
+#include <fontawesome/IconsFontAwesome6.h>
 
 class CUISelectedItemProp : public CImGuiWindow {
 public:
-	CUISelectedItemProp() : CImGuiWindow("Properties") {};
-	CUISelectedItemProp(std::string name) : CImGuiWindow(name) {};
+	CUISelectedItemProp() : CImGuiWindow("Properties") { m_Icon = ICON_FA_CUBE; };
+	CUISelectedItemProp(std::string name) : CImGuiWindow(name) { m_Icon = ICON_FA_CUBE; };
 	CUISelectedItemProp(const CUISelectedItemProp&) = delete;
 	CUISelectedItemProp& operator=(const CUISelectedItemProp&) = delete;
 

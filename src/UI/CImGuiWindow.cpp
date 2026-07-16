@@ -14,7 +14,7 @@ CImGuiWindow::~CImGuiWindow() {}
 
 bool CImGuiWindow::RenderBegin()
 {
-	m_Collapsed = !ImGui::Begin(m_Name.c_str(), &m_Opened, m_flags);
+	m_Collapsed = !ImGui::Begin(TitleWithIcon().c_str(), &m_Opened, m_flags);
 	if (!m_Opened)
 		return false;
 	return !m_Collapsed;

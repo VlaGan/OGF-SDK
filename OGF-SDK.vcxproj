@@ -105,7 +105,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;$(ProjectDir)3rd_party\assimp\include;$(ProjectDir)3rd_party\stb_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;$(ProjectDir)3rd_party\assimp\include;$(ProjectDir)3rd_party\stb_image\include;$(ProjectDir)3rd_party\IconsFontAwesome\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
@@ -124,7 +124,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;$(ProjectDir)3rd_party\assimp\include;$(ProjectDir)3rd_party\stb_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;$(ProjectDir)3rd_party\assimp\include;$(ProjectDir)3rd_party\stb_image\include;$(ProjectDir)3rd_party\IconsFontAwesome\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
