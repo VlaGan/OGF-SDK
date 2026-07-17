@@ -40,6 +40,9 @@
     <Filter Include="Render\Model\OGF">
       <UniqueIdentifier>{46c727b0-72ed-40e7-9e90-08c4f78d143b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ImGui\ImGuizmo">
+      <UniqueIdentifier>{e8135c9b-1816-426b-b01a-8fd919e0f857}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\OGF_SDK.h">
@@ -235,6 +238,9 @@
     </ClCompile>
     <ClCompile Include="src\Render\Model\OGF\COgfLoader.cpp">
       <Filter>Render\Model\OGF</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\ImGuizmo\ImGuizmo.cpp">
+      <Filter>ImGui\ImGuizmo</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

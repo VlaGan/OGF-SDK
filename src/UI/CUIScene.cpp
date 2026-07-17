@@ -16,13 +16,6 @@ void CUIScene::RenderContent()
 {
     CScene& scene = CScene::Get();
 
-    ImGui::Checkbox(ICON_FA_BORDER_ALL "  Grid", &scene.m_bDrawGrid);
-    ImGui::SameLine();
-    ImGui::Checkbox(ICON_FA_VECTOR_SQUARE "  Wireframe", &scene.m_bWireframe);
-    ImGui::SameLine();
-    ImGui::Checkbox(ICON_FA_BONE "  DrawSkeleton", &scene.m_bDrawSkeleton);
-    ImGui::Separator();
-
     //----------------------------------------
     // Search
     //----------------------------------------

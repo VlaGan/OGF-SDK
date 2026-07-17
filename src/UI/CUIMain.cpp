@@ -15,6 +15,7 @@
 #include "CUIScene.h"
 #include "CUISelectedItem.h"
 #include <fontawesome/IconsFontAwesome6.h>
+#include <ImGuizmo.h>
 
 //-------------------------------------------------------------------------
 //-- Ctor / Dtor
@@ -248,6 +249,7 @@ void CUIMain::Render()
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
+    ImGuizmo::BeginFrame(); // must run once per frame, before any Manipulate() calls
 
     //-- main menu bar
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(12.0f, 8.0f));
