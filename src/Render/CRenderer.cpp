@@ -179,21 +179,21 @@ bool CRenderer::Init(UINT dwW, UINT dwH) {
 
 // ground grid
 void DebugDrawGrid(ID3D11DeviceContext* context, CDebugRenderer& debug, float size, float step) {
-    DirectX::XMFLOAT4 gridColor(0.8f, 0.8f, 0.8f, 1.0f);
+    DirectX::XMFLOAT4 gridColor(0.26f, 0.26f, 0.26f, 1.0f);
     DirectX::XMFLOAT4 red(1.0f, 0.0f, 0.0f, 1.0f);
-    DirectX::XMFLOAT4 green(0.0f, 1.0f, 0.0f, 1.0f);
+    DirectX::XMFLOAT4 blue(0.f, 0.f, 0.5f, 1.0f);
 
     for (float x = -size; x <= size; x += step) {
         debug.DrawLine(context,
             DirectX::XMFLOAT3(x, 0, -size),
             DirectX::XMFLOAT3(x, 0, size),
-            !x ? red : gridColor);
+            !x ? blue : gridColor);
     }
     for (float z = -size; z <= size; z += step) {
         debug.DrawLine(context,
             DirectX::XMFLOAT3(-size, 0, z),
             DirectX::XMFLOAT3(size, 0, z),
-            !z ? green: gridColor);
+            !z ? red: gridColor);
     }
 }
 
@@ -256,7 +256,7 @@ void CRenderer::Render() {
     m_debugRenderer.SetRenderPhase(ePhaseBeforeScene);
 
     if(scene.m_bDrawGrid)
-        DebugDrawGrid(hw.m_Context, m_debugRenderer, 10, 1);
+        DebugDrawGrid(hw.m_Context, m_debugRenderer, 20, 1);
     
     m_debugRenderer.Render(hw.m_Context, m_ViewProj, true);
 
