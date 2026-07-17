@@ -5,11 +5,8 @@
 #include "CHW.h"
 #include "../_defines.h"
 #include <d3dcompiler.h>
-#include "../Core/CCamera.h"
-
 #include "CScene.h"
 
-extern CCamera m_Camera; //-- peredelat potom
 
 //-- Camera parameterss (cut this shit later)
 float fFov = 1.f;
@@ -115,9 +112,9 @@ bool CRenderer::Init(UINT dwW, UINT dwH) {
         DirectX::XMVectorSet(VPUSH4(camUp))    // (up)
     );
 
-
+    CCamera* camera = CScene::Get().Camera();
     m_Projection = DirectX::XMMatrixPerspectiveFovLH(
-        fFov, (float)dwW / (float)dwH, m_Camera.zNear, m_Camera.zFar
+        fFov, (float)dwW / (float)dwH, camera->zNear, camera->zFar
     );
 
     m_debugRenderer.Initialize(hw.m_Device);
@@ -230,15 +227,17 @@ void CRenderer::Render() {
     float dt = (timeCur - timePrev) / 1000.0f;
     timePrev = timeCur;
 
-    //-- update camera
-    m_Camera.Update(dt);
+    CScene& scene = CScene::Get();
+    CCamera* camera = scene.Camera();
 
-	CScene& scene = CScene::Get();
+    //-- update camera
+    camera->Update(dt);
+
 	for (auto& model : scene.GetModels())
 		model->Update(dt);
 
-    m_View = m_Camera.GetViewMatrix();
-    m_Projection = m_Camera.GetProjectionMatrix((float)dwWidth / (float)dwHeight);
+    m_View = camera->GetViewMatrix();
+    m_Projection = camera->GetProjectionMatrix((float)dwWidth / (float)dwHeight);
     m_ViewProj = DirectX::XMMatrixMultiply(m_View, m_Projection);
 
 	//-- Lets draw to main render target

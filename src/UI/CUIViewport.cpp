@@ -14,7 +14,6 @@
 #include <ImGui/imgui_internal.h> 
 #include <ImGuizmo.h>
 
-extern CCamera m_Camera;
 
 //-- shared visual constants for the floating viewport widgets
 constexpr float kToolBtn = 28.0f;
@@ -179,9 +178,10 @@ void CUIViewPort::DrawOverlaysButton(ImVec2 imageOriginScreen, float vpWidth)
 //-------------------------------------------------------------------------
 void CUIViewPort::DrawStatsBadge(ImVec2 imageOriginScreen, ImVec2 vpSize)
 {
+	CCamera* camera = CScene::Get().Camera();
 	std::string line1 = std::format("{}  {:.0f} x {:.0f}", ICON_FA_UP_DOWN_LEFT_RIGHT, vpSize.x, vpSize.y);
 	std::string line2 = std::format("{}  {:.2f}, {:.2f}, {:.2f}", ICON_FA_CAMERA,
-		m_Camera.m_position.x, m_Camera.m_position.y, m_Camera.m_position.z);
+		camera->m_position.x, camera->m_position.y, camera->m_position.z);
 
 	constexpr float kPad = 8.0f;  // child's own inner padding
 	constexpr float kGap = 4.0f;  // spacing between the two lines
@@ -217,11 +217,12 @@ void CUIViewPort::DrawGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 {
 	CScene& scene = CScene::Get();
 	CModel* model = scene.m_SelectedModel;
+	CCamera* camera = scene.Camera();
 
 	if (!model || scene.m_GizmoMode == eGizmoMode::eSelect)
 		return;
 
-	ImGuizmo::SetOrthographic(m_Camera.m_mode == eCameraProjMode::Orthographic);
+	ImGuizmo::SetOrthographic(camera->m_mode == eCameraProjMode::Orthographic);
 	ImGuizmo::SetDrawlist();
 	ImGuizmo::SetRect(imageOriginScreen.x, imageOriginScreen.y, vpSize.x, vpSize.y);
 
@@ -229,8 +230,8 @@ void CUIViewPort::DrawGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	//-- (row0=right, row1=up, row2=dir/forward, row3=position; v' = v*M),
 	//-- so view/projection are handed over as-is — no transpose needed.
 	DirectX::XMFLOAT4X4 viewF, projF;
-	DirectX::XMStoreFloat4x4(&viewF, m_Camera.GetViewMatrix());
-	DirectX::XMStoreFloat4x4(&projF, m_Camera.GetProjectionMatrix(vpSize.x / vpSize.y));
+	DirectX::XMStoreFloat4x4(&viewF, camera->GetViewMatrix());
+	DirectX::XMStoreFloat4x4(&projF, camera->GetProjectionMatrix(vpSize.x / vpSize.y));
 
 	float t[3] = { model->m_Position.x, model->m_Position.y, model->m_Position.z };
 	float r[3] = {
@@ -274,6 +275,8 @@ void CUIViewPort::DrawViewGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	constexpr float kGizmoSize = 88.0f;
 	constexpr float kOrbitLength = 8.0f;
 
+	CCamera* camera = CScene::Get().Camera();
+
 	ImVec2 pos(
 		imageOriginScreen.x + vpSize.x - kGizmoSize - kMargin,
 		imageOriginScreen.y + vpSize.y - kGizmoSize - kMargin);
@@ -282,7 +285,7 @@ void CUIViewPort::DrawViewGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	ImGuizmo::SetRect(imageOriginScreen.x, imageOriginScreen.y, vpSize.x, vpSize.y);
 
 	DirectX::XMFLOAT4X4 viewF;
-	DirectX::XMStoreFloat4x4(&viewF, m_Camera.GetViewMatrix());
+	DirectX::XMStoreFloat4x4(&viewF, camera->GetViewMatrix());
 
 	ImGuizmo::ViewManipulate((float*)&viewF, kOrbitLength, pos, ImVec2(kGizmoSize, kGizmoSize), IM_COL32(0, 0, 0, 0));
 
@@ -298,9 +301,9 @@ void CUIViewPort::DrawViewGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	float len = sqrtf(forward.x * forward.x + forward.y * forward.y + forward.z * forward.z);
 	if (len > 1e-5f) { forward.x /= len; forward.y /= len; forward.z /= len; }
 
-	m_Camera.m_position = { viewInvF.m[3][0], viewInvF.m[3][1], viewInvF.m[3][2] };
-	m_Camera.m_yaw = atan2f(forward.x, forward.z);
-	m_Camera.m_pitch = std::clamp(asinf(std::clamp(forward.y, -1.0f, 1.0f)),
+	camera->m_position = { viewInvF.m[3][0], viewInvF.m[3][1], viewInvF.m[3][2] };
+	camera->m_yaw = atan2f(forward.x, forward.z);
+	camera->m_pitch = std::clamp(asinf(std::clamp(forward.y, -1.0f, 1.0f)),
 		-DirectX::XM_PIDIV2 + 0.01f, DirectX::XM_PIDIV2 - 0.01f);
 }
 

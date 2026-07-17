@@ -4,6 +4,7 @@
 //----------------------------------------------------------------------------
 #include "CUIMain.h"
 #include "../Render/CHW.h"
+#include "../Render/CScene.h"
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_internal.h>
 #include <ImGui/imgui_impl_dx11.h>
@@ -304,5 +305,25 @@ void CUIMain::Render()
 
     hw.m_Context->OMSetRenderTargets(1, &hw.m_RenderTarget, nullptr);
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+//-------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------
+//-- Input events (TODO: maybe for m_Windows too?..)
+//-------------------------------------------------------------------------
+void CUIMain::OnKeyUp(WPARAM key) {
+    CScene::Get().Camera()->OnKeyUp(key);
+}
+
+void CUIMain::OnKeyDown(WPARAM key) {
+    CScene::Get().Camera()->OnKeyDown(key);
+}
+
+void CUIMain::OnMouseMove(int dx, int dy) {
+    CScene::Get().Camera()->OnMouseMove(dx, dy);
+}
+
+void CUIMain::OnMouseWheel(int delta) {
+    CScene::Get().Camera()->OnMouseWheel(delta);
 }
 //-------------------------------------------------------------------------

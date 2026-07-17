@@ -11,7 +11,6 @@
 #include "../_defines.h"
 #include "CCamera.h"
 
-CCamera m_Camera; //-- TODO
 UINT lastMouseX{};
 UINT lastMouseY{};
 
@@ -20,6 +19,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     //-- ImGUI
     if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
         return true;
+
+    CUIMain& ui = CUIMain::Get();
 
     switch (msg) {
 
@@ -67,25 +68,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if (wParam & MK_RBUTTON) {
             int dx = GET_X_LPARAM(lParam) - lastMouseX;
             int dy = GET_Y_LPARAM(lParam) - lastMouseY;
-            m_Camera.OnMouseMove(dx, dy);
+            ui.OnMouseMove(dx, dy);
         }
         lastMouseX = GET_X_LPARAM(lParam);
         lastMouseY = GET_Y_LPARAM(lParam);
     }break;
 
-                     //-- mouse wheel
+    //-- mouse wheel
     case WM_MOUSEWHEEL: {
-            m_Camera.OnMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
+        ui.OnMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
     }break;
 
-                      //-- keyboard key down
+    //-- keyboard key down
     case WM_KEYDOWN: {
-            m_Camera.OnKeyDown(wParam);
+        ui.OnKeyDown(wParam);
     }break;
 
-                   //-- keyboard keyup
+    //-- keyboard keyup
     case WM_KEYUP: {
-            m_Camera.OnKeyUp(wParam);
+        ui.OnKeyUp(wParam);
     }break;
 
 

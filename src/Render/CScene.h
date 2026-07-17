@@ -4,6 +4,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include "../Core/CCamera.h"
 
 class CModel;
 
@@ -34,6 +35,8 @@ public:
 
 	std::vector<CModel*>& GetModels() { return m_Models; }
 
+	CCamera* Camera() { return &m_Camera; }
+
 	bool m_bDrawGrid{ true };
 	bool m_bWireframe{ false };
 	bool m_bDrawSkeleton{ false };
@@ -48,4 +51,7 @@ public:
 
 private:
 	std::vector<CModel*> m_Models;
+	
+	//-- scene camera  
+	CCamera m_Camera;
 };

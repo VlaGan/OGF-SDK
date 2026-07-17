@@ -4,10 +4,7 @@
 #include "CUISceneSettings.h"
 #include "../Render/CRenderer.h"
 #include <fontawesome/IconsFontAwesome6.h>
-
-#include "../Core/CCamera.h"
-
-extern CCamera m_Camera;
+#include "../Render/CScene.h"
 
 void CUISceneSettings::RenderContent()
 {
@@ -25,18 +22,19 @@ void CUISceneSettings::RenderContent()
     }
 
     if (ImGui::CollapsingHeader(ICON_FA_CAMERA "  Camera", ImGuiTreeNodeFlags_None)) {
+        CCamera* camera = CScene::Get().Camera();
 
-        std::string camera_mode = m_Camera.m_mode == 
+        std::string camera_mode = camera->m_mode ==
             eCameraProjMode::ePerspective ? "Perspective" : "Orthogonal";
 
         if (ImGui::Button(ICON_FA_ROTATE_RIGHT "  Camera mode:")) {
-            m_Camera.m_mode = m_Camera.m_mode ==
+            camera->m_mode = camera->m_mode ==
                 eCameraProjMode::ePerspective ? eCameraProjMode::Orthographic : eCameraProjMode::ePerspective;
         }
         ImGui::SameLine();
         ImGui::Text(camera_mode.c_str());
 
-        ImGui::InputFloat("zNear", &m_Camera.zNear);
-        ImGui::InputFloat("zFar", &m_Camera.zFar);
+        ImGui::InputFloat("zNear", &camera->zNear);
+        ImGui::InputFloat("zFar", &camera->zFar);
     }
 }

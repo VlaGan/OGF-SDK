@@ -34,6 +34,13 @@ public:
 	bool m_bFirstFrame{};
 	HWND m_hWND{};
 
+//-- Input events
+public:
+	void OnKeyDown(WPARAM key);
+	void OnKeyUp(WPARAM key);
+	void OnMouseMove(int dx, int dy);
+	void OnMouseWheel(int delta);
+
 private:
 	std::vector<CImGuiWindow*> m_Windows;
 };
