@@ -62,6 +62,47 @@ namespace
     ogf_u32 VerticesChunkId(ogf_u8 formatVersion) { return formatVersion == OGF_FORMAT_VERSION ? (ogf_u32)OGF_VERTICES : (ogf_u32)OGF3_VERTICES; }
     ogf_u32 IndicesChunkId(ogf_u8 formatVersion) { return formatVersion == OGF_FORMAT_VERSION ? (ogf_u32)OGF_INDICES : (ogf_u32)OGF3_INDICES; }
     ogf_u32 ChildrenChunkId(ogf_u8 formatVersion) { return formatVersion == OGF_FORMAT_VERSION ? (ogf_u32)OGF_CHILDREN : (ogf_u32)OGF3_CHILDREN; }
+
+    //-- Fobb: 3x3 rotation matrix (rows i,j,k) + translate + halfsize, 60 bytes total
+    SOgfObb ReadObb(COgfChunkedReader& r)
+    {
+        SOgfObb obb;
+        float v[3];
+        r.r_fvector3(v);
+        obb.rotationI = {v[0], v[1], v[2]};
+        r.r_fvector3(v);
+        obb.rotationJ = {v[0], v[1], v[2]};
+        r.r_fvector3(v);
+        obb.rotationK = {v[0], v[1], v[2]};
+        r.r_fvector3(v);
+        obb.translate = {v[0], v[1], v[2]};
+        r.r_fvector3(v);
+        obb.halfsize = {v[0], v[1], v[2]};
+        return obb;
+    }
+
+    //-- SBoneShape: type(u16) + flags(u16) + Fobb(60) + Fsphere(16) + Fcylinder(32) = 112 bytes
+    SOgfBoneShape ReadBoneShape(COgfChunkedReader& r)
+    {
+        SOgfBoneShape shape;
+        shape.type = static_cast<EOgfBoneShapeType>(r.r_u16());
+        shape.flags = r.r_u16();
+        shape.box = ReadObb(r);
+
+        float v[3];
+        r.r_fvector3(v);
+        shape.sphere.center = {v[0], v[1], v[2]};
+        shape.sphere.radius = r.r_float();
+
+        r.r_fvector3(v);
+        shape.cylinder.center = {v[0], v[1], v[2]};
+        r.r_fvector3(v);
+        shape.cylinder.direction = {v[0], v[1], v[2]};
+        shape.cylinder.height = r.r_float();
+        shape.cylinder.radius = r.r_float();
+
+        return shape;
+    }
 } // namespace
 
 //----------------------------------------------------------------------------
@@ -424,7 +465,7 @@ bool COgfLoader::LoadSkeleton(COgfChunkedReader& r, SOgfModel& out, ogf_u8 forma
         SOgfBoneDef bone;
         bone.name = names.r_stringZ();
         parentNames.push_back(names.r_stringZ());
-        names.skip(60); // Fobb: 3x3 rotation (36) + translate(12) + halfsize(12) - unused for now
+        bone.obb = ReadObb(names); // 60 bytes: 3x3 rotation + translate + halfsize
         out.bones.push_back(std::move(bone));
     }
 
@@ -444,49 +485,64 @@ bool COgfLoader::LoadSkeleton(COgfChunkedReader& r, SOgfModel& out, ogf_u8 forma
     {
         for (ogf_u32 i = 0; i < count; ++i)
         {
+            const size_t boneIdx = out.bones.size() - count + i;
+            SOgfBoneDef& bone = out.bones[boneIdx];
+
+            bool perBoneFrictionValid = (ikVersion != 4); // v3/v2 chunks never have a friction field at all -> "not applicable" rather than "absent this bone"
+            ogf_u16 perBoneVers = 0;
+
             if (ikVersion == 4)
             {
-                const ogf_u16 vers = static_cast<ogf_u16>(ikData.r_u32());
+                perBoneVers = static_cast<ogf_u16>(ikData.r_u32());
+                perBoneFrictionValid = perBoneVers > 0;
+            }
 
-                ikData.r_stringZ(); // game material name - unused for now
-                ikData.skip(112); // SBoneShape - unused for now
+            bone.material = ikData.r_stringZ();
+            bone.shape = ReadBoneShape(ikData); // 112 bytes
 
-                // SJointIKData::Import (76 bytes total, or 72 if this bone's own `vers` is 0)
-                ikData.skip(4); // joint type
-                ikData.skip(3 * 16); // 3x SJointLimit { Fvector2 limit; float spring; float damping; }
-                ikData.skip(4 + 4); // spring_factor, damping_factor
-                ikData.skip(4); // ik_flags
-                ikData.skip(4 + 4); // break_force, break_torque
-                if (vers > 0)
-                    ikData.skip(4); // friction
+            // SJointIKData::Import - shared prefix across all versions
+            bone.ikData.valid = true;
+            bone.ikData.jointType = ikData.r_u32();
+            for (int limitIdx = 0; limitIdx < 3; ++limitIdx)
+            {
+                SOgfJointLimit& lim = bone.ikData.limits[limitIdx];
+                float lv[2];
+                ikData.r_fvector2(lv);
+                lim.limit = {lv[0], lv[1]};
+                lim.springFactor = ikData.r_float();
+                lim.dampingFactor = ikData.r_float();
+            }
+            bone.ikData.springFactor = ikData.r_float();
+            bone.ikData.dampingFactor = ikData.r_float();
+
+            if (ikVersion == 4 || ikVersion == 3)
+            {
+                bone.ikData.ikFlags = ikData.r_u32();
+                bone.ikData.breakForce = ikData.r_float();
+                bone.ikData.breakTorque = ikData.r_float();
+            }
+            // ikVersion == 2: no ik_flags/break_force/break_torque at all - left at defaults
+
+            if (ikVersion == 4 && perBoneFrictionValid)
+            {
+                bone.ikData.friction = ikData.r_float();
+                bone.ikData.frictionValid = true;
             }
             else
             {
-                ikData.r_stringZ(); // game material name
-                ikData.skip(112); // SBoneShape
-
-                if (ikVersion == 3)
-                {
-                    // Import (72 bytes): type + 3x limit + spring + damping + ik_flags + break_force/torque
-                    ikData.skip(4 + 3 * 16 + 4 + 4 + 4 + 4 + 4);
-                }
-                else // ikVersion == 2, oldest: no ik_flags/break_force/break_torque
-                {
-                    // Import (60 bytes): type + 3x limit + spring + damping
-                    ikData.skip(4 + 3 * 16 + 4 + 4);
-                }
+                bone.ikData.frictionValid = false;
             }
 
             float rot[3], pos[3];
             ikData.r_fvector3(rot);
             ikData.r_fvector3(pos);
+            bone.rotation = {rot[0], rot[1], rot[2]};
+            bone.position = {pos[0], pos[1], pos[2]};
 
-            const size_t boneIdx = out.bones.size() - count + i;
-            out.bones[boneIdx].rotation = {rot[0], rot[1], rot[2]};
-            out.bones[boneIdx].position = {pos[0], pos[1], pos[2]};
-
-            ikData.skip(4); // mass
-            ikData.skip(12); // center_of_mass
+            bone.mass = ikData.r_float();
+            float com[3];
+            ikData.r_fvector3(com);
+            bone.centerOfMass = {com[0], com[1], com[2]};
         }
     }
     else
@@ -856,6 +912,14 @@ bool COgfLoader::LoadVisual(COgfChunkedReader& r, SOgfModel& out, int depth)
         out.formatVersion = formatVersion;
         out.bboxMin = {bboxMin[0], bboxMin[1], bboxMin[2]};
         out.bboxMax = {bboxMax[0], bboxMax[1], bboxMax[2]};
+
+        //-- OGF_S_USERDATA: a free-form script/config text blob some models
+        //-- carry (e.g. weapon attachment point definitions). Only meaningful
+        //-- on the root visual. Cheap to check even when absent (most models).
+        const ogf_u32 userDataId = (formatVersion == OGF_FORMAT_VERSION) ? (ogf_u32)OGF_S_USERDATA : (ogf_u32)OGF3_S_USERDATA;
+        COgfChunkedReader userData;
+        if (r.open_chunk(userDataId, userData))
+            out.userData = userData.r_stringZ();
     }
 
     const ogf_u32 verticesChunkId = VerticesChunkId(formatVersion);
