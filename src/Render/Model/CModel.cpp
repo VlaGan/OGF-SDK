@@ -245,9 +245,10 @@ bool CModel::LoadFromOGF(ID3D11Device* device, const std::string& path)
         return false;
     }
 
-    //-- native path doesn't use Assimp: motion playback (TraverseHierarchy)
-    //-- stays disabled (Update() checks `scene` before touching it) until
-    //-- .omf motion loading is added; the model still renders in bind pose.
+    //-- native path doesn't use Assimp: `scene` stays null. Update() detects
+    //-- this and uses TraverseSkeleton() (walking CSkeleton's own tree)
+    //-- instead of TraverseHierarchy() (Assimp's aiNode tree) for motion
+    //-- playback, and UpdateSkeleton() (bind pose) whenever no motion is set.
     scene = nullptr;
 
     m_modelPath = path;
@@ -261,6 +262,18 @@ bool CModel::LoadFromOGF(ID3D11Device* device, const std::string& path)
 
     if (!ogf.bones.empty())
         m_Skeleton.LoadFromOGF(ogf.bones);
+
+    //-- motions live in separate .omf files, referenced by name from the
+    //-- .ogf itself (OGF_S_MOTION_REFS/2) - resolve and decode them now
+    if (!ogf.motionRefs.empty())
+        COgfLoader::LoadMotions(path, ogf);
+
+    m_vMotions.clear();
+    m_pCurrentMotion = nullptr;
+    if (!ogf.motions.empty()) {
+        m_vMotions = std::move(ogf.motions);
+        SetMotion(&m_vMotions[0]);
+    }
 
     m_Meshes.clear();
     m_Meshes.reserve(ogf.meshes.size());
@@ -345,7 +358,7 @@ DirectX::XMMATRIX InterpolatePosition(const BoneMotionData& boneAnim, float time
 DirectX::XMMATRIX InterpolateRotation(const BoneMotionData& boneAnim, float time)
 {
     if (boneAnim.rotations.size() == 1)
-        return DirectX::XMMatrixRotationQuaternion(XMLoadFloat4(&boneAnim.rotations[0].rotation));
+        return DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionNormalize(XMLoadFloat4(&boneAnim.rotations[0].rotation)));
 
     for (size_t i = 0; i < boneAnim.rotations.size() - 1; ++i)
     {
@@ -353,8 +366,8 @@ DirectX::XMMATRIX InterpolateRotation(const BoneMotionData& boneAnim, float time
         {
             float dt = boneAnim.rotations[i + 1].timeStamp - boneAnim.rotations[i].timeStamp;
             float factor = (time - boneAnim.rotations[i].timeStamp) / dt;
-            auto start = XMLoadFloat4(&boneAnim.rotations[i].rotation);
-            auto end = XMLoadFloat4(&boneAnim.rotations[i + 1].rotation);
+            auto start = DirectX::XMQuaternionNormalize(XMLoadFloat4(&boneAnim.rotations[i].rotation));
+            auto end = DirectX::XMQuaternionNormalize(XMLoadFloat4(&boneAnim.rotations[i + 1].rotation));
             auto rot = DirectX::XMQuaternionSlerp(start, end, factor);
             return DirectX::XMMatrixRotationQuaternion(rot);
         }
@@ -433,6 +446,46 @@ void CModel::TraverseHierarchy(float animationTime, const aiNode* node, const Di
     }
 }
 
+//-- same as TraverseHierarchy() above, but for natively (.ogf) loaded models:
+//-- walks CSkeleton's own CBoneInstance tree instead of an Assimp aiNode tree
+//-- (there is no aiScene for these models, so no aiNode tree to walk).
+void CModel::TraverseSkeleton(float animationTime, CBoneInstance* bone, const DirectX::XMMATRIX& parentTransform)
+{
+    if (!bone)
+        return;
+
+    const BoneMotionData* boneAnim = m_pCurrentMotion->GetBoneMotion(bone->m_sBoneName);
+
+    DirectX::XMMATRIX nodeTransform;
+    if (boneAnim)
+    {
+        auto T = InterpolatePosition(*boneAnim, animationTime);
+        //-- X-Ray's Fquaternion -> matrix convention (xrCore/vector.h,
+        //-- _matrix::rotation(const _quaternion&)) is the TRANSPOSE of
+        //-- DirectXMath's XMMatrixRotationQuaternion (verified numerically -
+        //-- every off-diagonal sign is flipped, matching a conjugated
+        //-- quaternion / inverse rotation). Without this, animated poses
+        //-- rotate the "wrong way", which compounds down the bone hierarchy
+        //-- into the model looking turned inside-out.
+        auto R = DirectX::XMMatrixTranspose(InterpolateRotation(*boneAnim, animationTime));
+        auto S = InterpolateScaling(*boneAnim, animationTime);
+        nodeTransform = R * T * S;
+    }
+    else
+    {
+        nodeTransform = bone->isIK ? bone->mLocalTransformIK : bone->mLocalTransform;
+    }
+
+    DirectX::XMMATRIX globalTransform = nodeTransform * parentTransform;
+
+    bone->mGlobalTransform = globalTransform;
+    bone->mRenderTransform = bone->mOffsetTransform * globalTransform;
+    DirectX::XMStoreFloat3(&bone->m_vWorldPosition, bone->mGlobalTransform.r[3]);
+
+    for (auto* child : bone->m_vChilds)
+        TraverseSkeleton(animationTime, child, globalTransform);
+}
+
 //-- general model transform in 3d space (not skeleton, just visual)
 void CModel::UpdateTransform() {
     DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z);
@@ -464,22 +517,30 @@ void CModel::Update(float dt) {
     if(m_Skeleton.m_BoneCount) 
         UpdateSkeleton(m_Skeleton.GetRootBone(), XFORM());
 
-    if (scene && scene->HasAnimations() && m_pCurrentMotion) { //-- else for simple visual rendering need to set not skinning shader
+    if (m_pCurrentMotion) { //-- else for simple visual rendering need to set not skinning shader
 
         //-- skip 1% of motion because annoying glitching
         if (m_AnimationDuration - m_AnimationDuration/100.f * 1.f <= m_CurrentTime)
             m_CurrentTime = 0.f;
 
-        m_CurrentTime += dt * m_TicksPerSecond; // seconds to ticks
+        m_CurrentTime += dt/2 * m_TicksPerSecond; // seconds to ticks
         float animTime = fmod(m_CurrentTime, m_AnimationDuration);
 
-        //------------------------------------------------------------------------------
-        //-- TODO: rootName method is trash, need to correctly 
-        //-- implement skeleton hierarchy reading and CSkeleton class
-        //-- then dont use assimp aiNode hierarchy (cuz that have lots of trash info)
-        //------------------------------------------------------------------------------
-        std::string root_bone = rootName(); //-- easyer for model changing
-        TraverseHierarchy(m_CurrentTime, scene->mRootNode->FindNode(root_bone.c_str()), XFORM());
+        if (scene && scene->HasAnimations())
+        {
+            //------------------------------------------------------------------------------
+            //-- TODO: rootName method is trash, need to correctly 
+            //-- implement skeleton hierarchy reading and CSkeleton class
+            //-- then dont use assimp aiNode hierarchy (cuz that have lots of trash info)
+            //------------------------------------------------------------------------------
+            std::string root_bone = rootName(); //-- easyer for model changing
+            TraverseHierarchy(m_CurrentTime, scene->mRootNode->FindNode(root_bone.c_str()), XFORM());
+        }
+        else if (m_Skeleton.m_BoneCount)
+        {
+            //-- natively (.ogf) loaded model: no aiScene, walk CSkeleton's own tree instead
+            TraverseSkeleton(m_CurrentTime, m_Skeleton.GetRootBone(), XFORM());
+        }
     }
 }
 //----------------------------------------------------------------------------

@@ -13,6 +13,8 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
+#include <memory>
 
 class COgfChunkedReader
 {
@@ -26,6 +28,9 @@ public:
     //-- top level of *this* reader's buffer, and if found, point `out` at
     //-- that chunk's payload (position 0 = start of payload).
     //-- Does not modify `this`'s own cursor - can be called repeatedly / out of order.
+    //-- Transparently decompresses the chunk if its id has the "compressed"
+    //-- bit (0x80000000) set - `out` then owns the decompressed buffer, so it
+    //-- stays alive exactly as long as `out` (or a copy of it) does.
     bool open_chunk(uint32_t id, COgfChunkedReader& out) const;
 
     //-- sequential primitive reads from this reader's own cursor
@@ -47,4 +52,5 @@ private:
     const uint8_t* m_data = nullptr;
     size_t m_size = 0;
     size_t m_pos = 0;
+    std::shared_ptr<std::vector<uint8_t>> m_owned; // non-null only for decompressed chunks
 };

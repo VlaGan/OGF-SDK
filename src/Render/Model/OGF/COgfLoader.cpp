@@ -7,7 +7,7 @@
 #include <fstream>
 #include <cstring>
 
-extern void LogMsg(const char* fmt, ...);
+#include "../../../_defines.h" // pulls in Core/CLog.h (LogMsg)
 
 //----------------------------------------------------------------------------
 //-- format_version dependent chunk id / classification helpers
@@ -517,6 +517,311 @@ bool COgfLoader::LoadSkeleton(COgfChunkedReader& r, SOgfModel& out, ogf_u8 forma
 }
 
 //----------------------------------------------------------------------------
+//-- OGF_S_MOTION_REFS: a single comma-separated stringZ list of .omf base
+//-- names (no path/extension). OGF_S_MOTION_REFS2: u32 count + that many
+//-- stringZ names directly. format_version 3 only ever uses the REFS variant
+//-- (chunk id 29). Ported from OGSR-Engine's SkeletonAnimated.cpp
+//-- (CKinematicsAnimated::Load) - wildcard "*.omf" directory listing isn't
+//-- supported here (that needs a filesystem scan, not just chunk parsing).
+//----------------------------------------------------------------------------
+bool COgfLoader::LoadMotionRefs(COgfChunkedReader& r, ogf_u8 formatVersion, SOgfModel& out)
+{
+    COgfChunkedReader refs;
+    const ogf_u32 refsId = (formatVersion == OGF_FORMAT_VERSION) ? (ogf_u32)OGF_S_MOTION_REFS : (ogf_u32)OGF3_S_MOTION_REFS;
+
+    if (r.open_chunk(refsId, refs))
+    {
+        const std::string items = refs.r_stringZ();
+        size_t start = 0;
+        while (start <= items.size())
+        {
+            const size_t comma = items.find(',', start);
+            const std::string item = (comma == std::string::npos) ? items.substr(start) : items.substr(start, comma - start);
+            if (!item.empty())
+                out.motionRefs.push_back(item);
+            if (comma == std::string::npos)
+                break;
+            start = comma + 1;
+        }
+        return !out.motionRefs.empty();
+    }
+
+    if (formatVersion == OGF_FORMAT_VERSION && r.open_chunk(OGF_S_MOTION_REFS2, refs))
+    {
+        const ogf_u32 count = refs.r_u32();
+        for (ogf_u32 i = 0; i < count; ++i)
+            out.motionRefs.push_back(refs.r_stringZ());
+        return !out.motionRefs.empty();
+    }
+
+    return false;
+}
+
+//----------------------------------------------------------------------------
+//-- OGF_S_SMPARAMS + OGF_S_MOTIONS decoding. Both an .omf file's top level
+//-- AND (in principle) an .ogf's own top level use this exact same chunk
+//-- pair/layout, so this one routine serves either case.
+//--
+//-- Ported from OGSR-Engine's xr_3da/SkeletonMotions.cpp (motions_value::load)
+//-- for the chunk layout, and Layers/xrRender/AnimationKeyCalculate.h for the
+//-- key dequantization math (QR2Quat / QT8_2T / QT16_2T).
+//--
+//-- We only need OGF_S_SMPARAMS for its "motion storage slot -> bone name"
+//-- table (built from each partition's bone list) - the rest of SMPARAMS
+//-- (motion defs: speed/power/accrue/falloff/marks) is blend-runtime-only
+//-- metadata that a preview/editor doesn't need, so it's simply never read.
+//----------------------------------------------------------------------------
+bool COgfLoader::LoadSMParamsAndMotions(COgfChunkedReader& root, std::vector<CMotion>& outMotions, const std::string& debugName, bool logIfMissing, int formatVersionHint)
+{
+    //-- restrict candidate chunk ids to the known format_version when the
+    //-- caller tells us it (see header comment - avoids the OGF3_S_SMPARAMS(18)
+    //-- / OGF_S_DESC(18) collision on v4 files)
+    const bool tryV4 = (formatVersionHint < 0 || formatVersionHint == OGF_FORMAT_VERSION);
+    const bool tryV3 = (formatVersionHint < 0 || formatVersionHint != OGF_FORMAT_VERSION);
+
+    COgfChunkedReader sm;
+    bool haveSM = false;
+    if (tryV4)
+        haveSM = root.open_chunk(OGF_S_SMPARAMS, sm);
+    if (!haveSM && tryV3)
+        haveSM = root.open_chunk(OGF3_S_SMPARAMS_NEW, sm) || root.open_chunk(OGF3_S_SMPARAMS, sm);
+
+    if (!haveSM)
+    {
+        if (logIfMissing)
+            LogMsg("!COgfLoader::LoadMotions: no SMPARAMS chunk in [%s]", debugName.c_str());
+        return false;
+    }
+
+    sm.r_u16(); // version - only affects the CMotionDef marks section we don't read
+    const ogf_u16 partCount = sm.r_u16();
+
+    //-- sanity bound: a real SMPARAMS never has anywhere near this many
+    //-- partitions/bones. Guards against ever mis-parsing an unrelated chunk
+    //-- (wrong id, or garbage) as SMPARAMS and trying to allocate gigabytes.
+    constexpr ogf_u16 kMaxReasonableCount = 4096;
+
+    std::vector<std::string> slotToBoneName;
+    for (ogf_u16 p = 0; p < partCount && p < kMaxReasonableCount; ++p)
+    {
+        sm.r_stringZ(); // partition name - unused
+        const ogf_u16 boneCount = sm.r_u16();
+        for (ogf_u16 b = 0; b < boneCount && b < kMaxReasonableCount; ++b)
+        {
+            std::string boneName = sm.r_stringZ();
+            const ogf_u32 slot = sm.r_u32();
+            if (slot >= kMaxReasonableCount)
+            {
+                if (logIfMissing)
+                    LogMsg("!COgfLoader::LoadMotions: implausible bone slot [%u] in [%s], SMPARAMS is probably a misidentified chunk - aborting", slot, debugName.c_str());
+                return false;
+            }
+            if (slotToBoneName.size() <= slot)
+                slotToBoneName.resize(slot + 1);
+            slotToBoneName[slot] = std::move(boneName);
+        }
+    }
+
+    if (slotToBoneName.empty())
+    {
+        if (logIfMissing)
+            LogMsg("!COgfLoader::LoadMotions: SMPARAMS has no bones in [%s]", debugName.c_str());
+        return false;
+    }
+
+    COgfChunkedReader ms;
+    bool haveMS = false;
+    if (tryV4)
+        haveMS = root.open_chunk(OGF_S_MOTIONS, ms);
+    if (!haveMS && tryV3)
+        haveMS = root.open_chunk(OGF3_S_MOTIONS_NEW, ms);
+
+    if (!haveMS)
+    {
+        if (logIfMissing)
+            LogMsg("!COgfLoader::LoadMotions: no MOTIONS chunk in [%s]", debugName.c_str());
+        return false;
+    }
+
+    COgfChunkedReader countChunk;
+    if (!ms.open_chunk(0, countChunk))
+    {
+        if (logIfMissing)
+            LogMsg("!COgfLoader::LoadMotions: MOTIONS chunk missing motion count in [%s]", debugName.c_str());
+        return false;
+    }
+    const ogf_u32 motionCount = countChunk.r_u32();
+
+    //-- same defense-in-depth bound as above, for the same reason
+    constexpr ogf_u32 kMaxReasonableMotions = 200000;
+    if (motionCount > kMaxReasonableMotions)
+    {
+        if (logIfMissing)
+            LogMsg("!COgfLoader::LoadMotions: implausible motion count [%u] in [%s], MOTIONS is probably a misidentified chunk - aborting", motionCount, debugName.c_str());
+        return false;
+    }
+
+    outMotions.reserve(outMotions.size() + motionCount);
+
+    for (ogf_u32 m = 0; m < motionCount; ++m)
+    {
+        COgfChunkedReader mot;
+        if (!ms.open_chunk(m + 1, mot)) // motions are numbered starting at 1, slot 0 is the count above
+        {
+            LogMsg("~COgfLoader::LoadMotions: motion #%u missing in [%s]", m, debugName.c_str());
+            continue;
+        }
+
+        const std::string motionName = mot.r_stringZ();
+        const ogf_u32 frameCount = mot.r_u32();
+
+        CMotion motion(motionName, frameCount > 0 ? float(frameCount) : 1.0f, OGF_SAMPLE_FPS);
+
+        for (size_t slot = 0; slot < slotToBoneName.size(); ++slot)
+        {
+            BoneMotionData bmd{};
+            bmd.name = slotToBoneName[slot];
+
+            const ogf_u8 flags = mot.r_u8();
+
+            //-- rotation: either one constant key, or `frameCount` keyframes
+            if (flags & OGF_MOTION_FL_R_KEY_ABSENT)
+            {
+                ogf_key_qr k{};
+                mot.r(&k, sizeof(k));
+                bmd.rotations.push_back({{float(k.x) * OGF_KEY_QUANT_I, float(k.y) * OGF_KEY_QUANT_I, float(k.z) * OGF_KEY_QUANT_I, float(k.w) * OGF_KEY_QUANT_I}, 0.f});
+            }
+            else
+            {
+                mot.r_u32(); // crc - unused
+                bmd.rotations.reserve(frameCount);
+                for (ogf_u32 f = 0; f < frameCount; ++f)
+                {
+                    ogf_key_qr k{};
+                    mot.r(&k, sizeof(k));
+                    bmd.rotations.push_back({{float(k.x) * OGF_KEY_QUANT_I, float(k.y) * OGF_KEY_QUANT_I, float(k.z) * OGF_KEY_QUANT_I, float(k.w) * OGF_KEY_QUANT_I}, float(f)});
+                }
+            }
+
+            //-- translation: either `frameCount` quantized keyframes (8 or 16
+            //-- bit, dequantized as raw*sizeT+initT), or one constant vector
+            if (flags & OGF_MOTION_FL_T_KEY_PRESENT)
+            {
+                mot.r_u32(); // crc - unused
+
+                std::vector<DirectX::XMFLOAT3> raw;
+                raw.reserve(frameCount);
+                if (flags & OGF_MOTION_FL_T_KEY_16BIT)
+                {
+                    for (ogf_u32 f = 0; f < frameCount; ++f)
+                    {
+                        ogf_key_qt16 k{};
+                        mot.r(&k, sizeof(k));
+                        raw.push_back({float(k.x), float(k.y), float(k.z)});
+                    }
+                }
+                else
+                {
+                    for (ogf_u32 f = 0; f < frameCount; ++f)
+                    {
+                        ogf_key_qt8 k{};
+                        mot.r(&k, sizeof(k));
+                        raw.push_back({float(k.x), float(k.y), float(k.z)});
+                    }
+                }
+
+                float sizeT[3], initT[3];
+                mot.r_fvector3(sizeT);
+                mot.r_fvector3(initT);
+
+                bmd.positions.reserve(frameCount);
+                for (ogf_u32 f = 0; f < frameCount; ++f)
+                {
+                    bmd.positions.push_back({{raw[f].x * sizeT[0] + initT[0], raw[f].y * sizeT[1] + initT[1], raw[f].z * sizeT[2] + initT[2]}, float(f)});
+                }
+            }
+            else
+            {
+                float initT[3];
+                mot.r_fvector3(initT);
+                bmd.positions.push_back({{initT[0], initT[1], initT[2]}, 0.f});
+            }
+
+            //-- X-Ray never animates per-bone scale; CModel::InterpolateScaling
+            //-- (and Position/Rotation) index scales[i+1] without checking for
+            //-- an empty vector, so always provide exactly one identity key.
+            if (bmd.positions.empty())
+                bmd.positions.push_back({{0.f, 0.f, 0.f}, 0.f});
+            if (bmd.rotations.empty())
+                bmd.rotations.push_back({{0.f, 0.f, 0.f, 1.f}, 0.f});
+            bmd.scales.push_back({{1.f, 1.f, 1.f}, 0.f});
+
+            motion.AddBoneMtData(bmd);
+        }
+
+        outMotions.push_back(std::move(motion));
+    }
+
+    return true;
+}
+
+//----------------------------------------------------------------------------
+bool COgfLoader::LoadMotionsFile(const std::string& path, std::vector<CMotion>& outMotions)
+{
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file.is_open())
+    {
+        LogMsg("!COgfLoader::LoadMotionsFile: cant open [%s]", path.c_str());
+        return false;
+    }
+
+    const std::streamsize fileSize = file.tellg();
+    file.seekg(0, std::ios::beg);
+    if (fileSize <= 0)
+        return false;
+
+    std::vector<uint8_t> buffer(static_cast<size_t>(fileSize));
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), fileSize))
+        return false;
+
+    //-- an .omf file has no OGF_HEADER of its own - it's just SMPARAMS +
+    //-- MOTIONS sitting directly at the top level
+    COgfChunkedReader root(buffer.data(), buffer.size());
+    return LoadSMParamsAndMotions(root, outMotions, path);
+}
+
+//----------------------------------------------------------------------------
+bool COgfLoader::LoadMotions(const std::string& ogfPath, SOgfModel& out)
+{
+    if (out.motionRefs.empty())
+        return false;
+
+    const size_t slash = ogfPath.find_last_of("/\\");
+    const std::string dir = (slash == std::string::npos) ? std::string() : ogfPath.substr(0, slash + 1);
+
+    bool any = false;
+    for (const auto& ref : out.motionRefs)
+    {
+        const std::string omfPath = dir + ref + ".omf";
+
+        std::vector<CMotion> loaded;
+        if (LoadMotionsFile(omfPath, loaded))
+        {
+            LogMsg("-COgfLoader::LoadMotions: [%s] -> %zu motion(s)", omfPath.c_str(), loaded.size());
+            for (auto& m : loaded)
+                out.motions.push_back(std::move(m));
+            any = true;
+        }
+        else
+        {
+            LogMsg("~COgfLoader::LoadMotions: could not load referenced motion file [%s]", omfPath.c_str());
+        }
+    }
+
+    return any;
+}
+
+//----------------------------------------------------------------------------
 //-- parses one visual (recursively, for hierarchical/skeletal models)
 //----------------------------------------------------------------------------
 bool COgfLoader::LoadVisual(COgfChunkedReader& r, SOgfModel& out, int depth)
@@ -590,6 +895,24 @@ bool COgfLoader::LoadVisual(COgfChunkedReader& r, SOgfModel& out, int depth)
         const EOgfKind kind = ClassifyOgfType(formatVersion, type);
         if (kind == EOgfKind::SkeletonAnim || kind == EOgfKind::SkeletonRigid)
             LoadSkeleton(r, out, formatVersion);
+
+        //-- motion references are only meaningful (and only present) on the
+        //-- root visual - a nested child would never carry its own OGF_S_MOTION_REFS
+        if (depth == 0 && (kind == EOgfKind::SkeletonAnim || kind == EOgfKind::SkeletonRigid))
+        {
+            LoadMotionRefs(r, formatVersion, out);
+
+            //-- the "release" engine (OGSR/CS/CoP) always splits motions out
+            //-- into separate .omf files referenced above, but some SDK/preview
+            //-- builds could in principle embed OGF_S_SMPARAMS/OGF_S_MOTIONS
+            //-- directly in the .ogf's own top-level stream. Try that too, in
+            //-- addition to (not instead of) the referenced .omf files - costs
+            //-- nothing when absent (LoadSMParamsAndMotions just returns false,
+            //-- silently since logIfMissing=false).
+            const size_t before = out.motions.size();
+            if (LoadSMParamsAndMotions(r, out.motions, out.sourcePath, /*logIfMissing=*/false, /*formatVersionHint=*/formatVersion))
+                LogMsg("-COgfLoader::LoadVisual: [%s] also has %zu motion(s) embedded directly in the .ogf", out.sourcePath.c_str(), out.motions.size() - before);
+        }
 
         const ogf_u32 childrenChunkId = ChildrenChunkId(formatVersion);
         COgfChunkedReader childrenContainer;

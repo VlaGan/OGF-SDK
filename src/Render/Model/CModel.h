@@ -26,10 +26,10 @@ public:
     bool LoadFromFile(ID3D11Device* device, const std::string& path);
 
     //-- native .ogf loading (no Assimp): parses the file directly via
-    //-- COgfLoader and builds CMesh/CSkeleton from it. Bind-pose skinning
-    //-- works out of the box; motion (.omf) playback is not implemented yet,
-    //-- so `scene` stays null and TraverseHierarchy()/Update() simply keeps
-    //-- rendering the bind pose via UpdateSkeleton().
+    //-- COgfLoader and builds CMesh/CSkeleton from it, and also resolves+loads
+    //-- any referenced .omf motion files into m_vMotions. `scene` stays null;
+    //-- Update() uses TraverseSkeleton() instead of TraverseHierarchy() for
+    //-- playback, and UpdateSkeleton() (bind pose) whenever no motion is set.
     bool LoadFromOGF(ID3D11Device* device, const std::string& path);
 
     void Render(ID3D11DeviceContext* context, bool transparent = false);
@@ -93,6 +93,12 @@ public:
     CMotion* m_pCurrentMotion{};
 
     void TraverseHierarchy(float animationTime, const aiNode* node, const DirectX::XMMATRIX& parentTransform);
+
+    //-- same as TraverseHierarchy(), but walks CSkeleton's own CBoneInstance
+    //-- tree instead of an Assimp aiNode tree - used for natively (.ogf)
+    //-- loaded models, which have no aiScene to traverse.
+    void TraverseSkeleton(float animationTime, CBoneInstance* bone, const DirectX::XMMATRIX& parentTransform);
+
     void UpdateSkeleton(CBoneInstance* bone, const DirectX::XMMATRIX& parentTransform);
 
     //-- Current motion parameters (maybe i will take it from motion data, thats just for debug)

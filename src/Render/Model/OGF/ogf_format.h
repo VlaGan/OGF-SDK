@@ -115,6 +115,44 @@ enum EOgfChunkV3 : ogf_u32
     OGF3_S_MOTION_REFS = 29,
 };
 
+//-- format_version 3 had at least two different revisions of the SMPARAMS /
+//-- MOTIONS chunk ids across SDK builds; try these as a fallback if the
+//-- "canonical" OGF_S_SMPARAMS(15)/OGF_S_MOTIONS(14) aren't found.
+constexpr ogf_u32 OGF3_S_SMPARAMS_NEW = 20; // build 1472-1865
+constexpr ogf_u32 OGF3_S_MOTIONS_NEW = 26; // build 1616-1865
+
+//----------------------------------------------------------------------------
+//-- raw compressed keyframe structs stored inside OGF_S_MOTIONS, byte-exact
+//-- with OGSR-Engine's xr_3da/SkeletonMotions.h (CKeyQR/CKeyQT8/CKeyQT16) and
+//-- dequantized exactly like Layers/xrRender/AnimationKeyCalculate.h.
+//----------------------------------------------------------------------------
+#pragma pack(push, 1)
+struct ogf_key_qr // quantized rotation: component = raw / OGF_KEY_QUANT (quaternion x,y,z,w)
+{
+    int16_t x, y, z, w;
+};
+struct ogf_key_qt8 // quantized translation, 8-bit: component = raw * sizeT + initT
+{
+    int8_t x, y, z;
+};
+struct ogf_key_qt16 // quantized translation, 16-bit: component = raw * sizeT + initT
+{
+    int16_t x, y, z;
+};
+#pragma pack(pop)
+
+constexpr float OGF_KEY_QUANT = 32767.0f;
+constexpr float OGF_KEY_QUANT_I = 1.0f / OGF_KEY_QUANT;
+constexpr float OGF_SAMPLE_FPS = 30.0f; // fixed keyframe rate for all X-Ray skeleton motions
+
+//-- per-bone, per-motion flags byte in OGF_S_MOTIONS (SkeletonMotions.h: flTKeyPresent/flRKeyAbsent/flTKey16IsBit)
+enum EOgfMotionKeyFlags : ogf_u8
+{
+    OGF_MOTION_FL_T_KEY_PRESENT = 1 << 0, // translation is keyframed (else: single constant Fvector3)
+    OGF_MOTION_FL_R_KEY_ABSENT = 1 << 1, // rotation is a single constant key (else: keyframed)
+    OGF_MOTION_FL_T_KEY_16BIT = 1 << 2, // translation keys are ogf_key_qt16 (else: ogf_key_qt8)
+};
+
 //-- top level visual type for format_version == 3 - numerically different
 //-- from EOgfModelType (format_version == 4) above!
 enum EOgfModelTypeV3 : ogf_u8

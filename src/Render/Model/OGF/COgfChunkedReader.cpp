@@ -2,6 +2,7 @@
 //-- COgfChunkedReader.cpp
 //----------------------------------------------------------------------------
 #include "COgfChunkedReader.h"
+#include "COgfLzHuf.h" // OgfDecompressLZ is kept available but NOT auto-triggered - see note below
 
 bool COgfChunkedReader::open_chunk(uint32_t id, COgfChunkedReader& out) const
 {
@@ -16,10 +17,23 @@ bool COgfChunkedReader::open_chunk(uint32_t id, COgfChunkedReader& out) const
         std::memcpy(&chunkSize, m_data + pos + 4, 4);
         pos += 8;
 
-        //-- X-Ray uses the top bit of the chunk id as a "compressed" flag in
-        //-- some containers (never in standalone .ogf model files, but mask
-        //-- it off defensively so odd/aux ids don't break the scan)
-        const uint32_t maskedId = chunkId & 0x3FFFFFFFu;
+        //-- The top bit of the chunk id (0x80000000, X-Ray's CFS_CompressMark
+        //-- in xrCore/FS.h) is masked off for comparison purposes only.
+        //--
+        //-- IMPORTANT: this bit is NOT treated as "this payload is
+        //-- LZ-compressed" here, even though that's what it means in other
+        //-- X-Ray contexts (.db archives, compiled level geometry). Real
+        //-- model files (.ogf/.omf, both vanilla and Gunslinger-modified
+        //-- ones with their own 16-bit-id chunk header variant) have been
+        //-- observed setting this bit on plain, uncompressed OGF_HEADER /
+        //-- OGF_S_DESC chunks - decompressing them produces garbage
+        //-- (verified: format_version/type came out as nonsense numbers on
+        //-- a real wpn_*_hud.ogf, while reading the SAME bytes raw gave a
+        //-- perfectly sane format_version=4/type=3). So: mask it, don't act
+        //-- on it. OgfDecompressLZ() is kept around in case a genuinely
+        //-- compressed chunk ever turns up, but nothing calls it right now.
+        constexpr uint32_t kCompressMark = 0x80000000u;
+        const uint32_t maskedId = chunkId & ~kCompressMark;
 
         if (pos + chunkSize > m_size)
             break; // truncated / corrupted file, stop scanning

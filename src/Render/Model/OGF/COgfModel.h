@@ -10,6 +10,7 @@
 #include <DirectXMath.h>
 #include "ogf_format.h"
 #include "../../_render_structs.h" // Vertex
+#include "../CMotion.h" // CMotion / BoneMotionData / KeyPosition / KeyRotation
 
 //-- one skeleton bone, as read from OGF_S_BONE_NAMES / OGF_S_IKDATA
 struct SOgfBoneDef
@@ -48,4 +49,13 @@ struct SOgfModel
 
     std::vector<SOgfMeshDef> meshes;
     std::vector<SOgfBoneDef> bones; // empty for static (non-skeletal) models
+
+    //-- names of referenced .omf files (from OGF_S_MOTION_REFS/2), without
+    //-- path or extension - resolved and loaded separately via
+    //-- COgfLoader::LoadMotions() since they live in their own files on disk
+    std::vector<std::string> motionRefs;
+
+    //-- decoded motions, filled by COgfLoader::LoadMotions() - already in the
+    //-- exact shape CModel::m_vMotions expects, ready to hand over as-is
+    std::vector<CMotion> motions;
 };

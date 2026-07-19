@@ -59,7 +59,7 @@ public:
 	void LoadFromOGF(const std::vector<SOgfBoneDef>& ogfBones);
 
 	//-- default methods
-	INL CBoneInstance* GetRootBone() { return &m_vBones[0]; }
+	INL CBoneInstance* GetRootBone() { return m_BonesNode ? m_BonesNode : &m_vBones[0]; }
 	INL CBoneInstance* GetBoneInstance(u32 bid) { return bid >= 0 && bid < m_BoneCount ? &m_vBones[bid] : nullptr; }
 	INL CBoneInstance* GetBoneInstance(std::string name) {
 		for (auto& bi : m_vBones)
@@ -79,5 +79,4 @@ public:
 	u32 m_BoneCount{};
 	std::vector<CBoneInstance> m_vBones;
 	CBoneInstance* m_BonesNode;
-
 };

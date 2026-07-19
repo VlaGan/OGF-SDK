@@ -138,6 +138,9 @@
     <ClInclude Include="src\Render\Model\OGF\ogf_format.h">
       <Filter>Render\Model\OGF</Filter>
     </ClInclude>
+    <ClInclude Include="src\Render\Model\OGF\COgfLzHuf.h">
+      <Filter>Render\Model\OGF</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -241,6 +244,9 @@
     </ClCompile>
     <ClCompile Include="3rd_party\ImGuizmo\ImGuizmo.cpp">
       <Filter>ImGui\ImGuizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\OGF\COgfLzHuf.cpp">
+      <Filter>Render\Model\OGF</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -201,11 +201,16 @@ void CSkeleton::Load(const aiScene* scene) {
 //----------------------------------------------------------------------------
 //-- native .ogf bone local transform: matches OGSR-Engine's
 //-- CBoneData::bind_transform.setXYZi(rotation); translate_over(position);
-//-- (X-Ray's "XYZi" Euler convention is h=-y, p=-x, b=-z, applied Y*X*Z)
+//--
+//-- Derived (and numerically verified) from xrCore/_matrix.h:
+//--   setXYZi(x,y,z)  = setHPB(-y, -x, -z)
+//--   setHPB(h,p,b)   = RotZ(-b) * RotX(-p) * RotY(-h)   (row-vector, applied left-to-right)
+//-- Substituting h=-y, p=-x, b=-z collapses the double negation:
+//--   setXYZi(x,y,z)  = RotZ(z) * RotX(x) * RotY(y)      -- NO sign flip on x/y/z themselves!
 //----------------------------------------------------------------------------
 static DirectX::XMMATRIX OgfBoneLocalTransform(const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& position) {
     using namespace DirectX;
-    const XMMATRIX rot = XMMatrixRotationZ(-rotation.z) * XMMatrixRotationX(-rotation.x) * XMMatrixRotationY(-rotation.y);
+    const XMMATRIX rot = XMMatrixRotationZ(rotation.z) * XMMatrixRotationX(rotation.x) * XMMatrixRotationY(rotation.y);
     const XMMATRIX trans = XMMatrixTranslation(position.x, position.y, position.z);
     return rot * trans;
 }

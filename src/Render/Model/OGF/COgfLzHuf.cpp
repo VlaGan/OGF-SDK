@@ -1,0 +1,284 @@
+//----------------------------------------------------------------------------
+//-- COgfLzHuf.cpp
+//-- Decode-only port of OGSR-Engine's xrCore/LzHuf.cpp (itself the classic
+//-- public-domain "lzhuf" adaptive-Huffman + LZSS algorithm by Haruhiko
+//-- Okumura / Haruyasu Yoshizaki). Only the decompression half is ported -
+//-- this SDK never needs to write compressed chunks, only read them.
+//----------------------------------------------------------------------------
+#include "COgfLzHuf.h"
+#include <cstring>
+
+namespace
+{
+constexpr int N = 4096; // ring buffer size
+constexpr int F = 60; // lookahead buffer size
+constexpr int THRESHOLD = 2;
+
+constexpr int N_CHAR = 256 - THRESHOLD + F;
+constexpr int T = N_CHAR * 2 - 1;
+constexpr int R = T - 1;
+constexpr uint32_t MAX_FREQ = 0x4000;
+
+//-- position-decoding tables (byte-exact with OGSR-Engine's LzHuf.cpp)
+constexpr uint8_t d_code[256] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02, 0x02, 0x02,
+    0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
+    0x03, 0x03, 0x03, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
+    0x06, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x0A,
+    0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0B, 0x0C, 0x0C, 0x0C, 0x0C, 0x0D, 0x0D, 0x0D, 0x0D, 0x0E, 0x0E, 0x0E,
+    0x0E, 0x0F, 0x0F, 0x0F, 0x0F, 0x10, 0x10, 0x10, 0x10, 0x11, 0x11, 0x11, 0x11, 0x12, 0x12, 0x12, 0x12, 0x13, 0x13, 0x13, 0x13, 0x14, 0x14, 0x14, 0x14, 0x15,
+    0x15, 0x15, 0x15, 0x16, 0x16, 0x16, 0x16, 0x17, 0x17, 0x17, 0x17, 0x18, 0x18, 0x19, 0x19, 0x1A, 0x1A, 0x1B, 0x1B, 0x1C, 0x1C, 0x1D, 0x1D, 0x1E, 0x1E, 0x1F,
+    0x1F, 0x20, 0x20, 0x21, 0x21, 0x22, 0x22, 0x23, 0x23, 0x24, 0x24, 0x25, 0x25, 0x26, 0x26, 0x27, 0x27, 0x28, 0x28, 0x29, 0x29, 0x2A, 0x2A, 0x2B, 0x2B, 0x2C,
+    0x2C, 0x2D, 0x2D, 0x2E, 0x2E, 0x2F, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
+};
+
+constexpr uint8_t d_len[256] = {
+    0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
+    0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
+    0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
+    0x04, 0x04, 0x04, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
+    0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
+    0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
+    0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
+    0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
+    0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
+    0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
+};
+
+//-- decode-only state, ported 1:1 from LzHuf.cpp's LzHuf class
+class LzHufDecoder
+{
+public:
+    bool Run(const uint8_t* src, size_t srcSize, std::vector<uint8_t>& out)
+    {
+        in_start = src;
+        in_end = src + srcSize;
+        in_iterator = in_start;
+        getbuf = getlen = 0;
+
+        const uint32_t b0 = static_cast<uint32_t>(_getb_or0());
+        const uint32_t b1 = static_cast<uint32_t>(_getb_or0());
+        const uint32_t b2 = static_cast<uint32_t>(_getb_or0());
+        const uint32_t b3 = static_cast<uint32_t>(_getb_or0());
+        const uint32_t textsize = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
+
+        if (textsize == 0)
+            return false;
+
+        out.clear();
+        out.reserve(textsize);
+
+        StartHuff();
+        std::memset(text_buf, 0x20, N - F);
+        int r = N - F;
+
+        while (out.size() < textsize)
+        {
+            const int c = DecodeChar();
+            if (c < 0)
+                return false; // ran out of input mid-stream
+            if (c < 256)
+            {
+                out.push_back(static_cast<uint8_t>(c));
+                text_buf[r++] = static_cast<uint8_t>(c);
+                r &= (N - 1);
+            }
+            else
+            {
+                const int pos = DecodePosition();
+                if (pos < 0)
+                    return false;
+                const int i = (r - pos - 1) & (N - 1);
+                const int j = c - 255 + THRESHOLD;
+                for (int k = 0; k < j && out.size() < textsize; ++k)
+                {
+                    const uint8_t ch = text_buf[(i + k) & (N - 1)];
+                    out.push_back(ch);
+                    text_buf[r++] = ch;
+                    r &= (N - 1);
+                }
+            }
+        }
+        return true;
+    }
+
+private:
+    //-- bit-level input reader over the compressed byte stream
+    const uint8_t* in_start = nullptr;
+    const uint8_t* in_end = nullptr;
+    const uint8_t* in_iterator = nullptr;
+    unsigned getbuf = 0;
+    unsigned getlen = 0;
+
+    int _getb_or0()
+    {
+        if (in_iterator == in_end)
+            return 0;
+        return *in_iterator++;
+    }
+
+    int GetBit()
+    {
+        while (getlen <= 8)
+        {
+            int i = _getb_or0();
+            getbuf |= static_cast<unsigned>(i) << (8 - getlen);
+            getlen += 8;
+        }
+        const unsigned i = getbuf;
+        getbuf <<= 1;
+        getlen--;
+        return static_cast<int>((i & 0x8000) >> 15);
+    }
+
+    int GetByte()
+    {
+        while (getlen <= 8)
+        {
+            int i = _getb_or0();
+            getbuf |= static_cast<unsigned>(i) << (8 - getlen);
+            getlen += 8;
+        }
+        const unsigned i = getbuf;
+        getbuf <<= 8;
+        getlen -= 8;
+        return static_cast<int>((i & 0xff00) >> 8);
+    }
+
+    //-- adaptive Huffman tree state
+    uint32_t freq[T + 1]{};
+    int prnt[T + N_CHAR + 1]{};
+    int son[T]{};
+    uint8_t text_buf[N + F]{};
+
+    void StartHuff()
+    {
+        for (int i = 0; i < N_CHAR; i++)
+        {
+            freq[i] = 1;
+            son[i] = i + T;
+            prnt[i + T] = i;
+        }
+        int i = 0, j = N_CHAR;
+        while (j <= R)
+        {
+            freq[j] = freq[i] + freq[i + 1];
+            son[j] = i;
+            prnt[i] = prnt[i + 1] = j;
+            i += 2;
+            j++;
+        }
+        freq[T] = 0xffff;
+        prnt[R] = 0;
+    }
+
+    void reconst()
+    {
+        int j = 0;
+        for (int i = 0; i < T; i++)
+        {
+            if (son[i] >= T)
+            {
+                freq[j] = (freq[i] + 1) / 2;
+                son[j] = son[i];
+                j++;
+            }
+        }
+        for (int i = 0, jj = N_CHAR; jj < T; i += 2, jj++)
+        {
+            const int k = i + 1;
+            const unsigned f = freq[jj] = freq[i] + freq[k];
+            int kk = jj - 1;
+            while (f < freq[kk])
+                kk--;
+            kk++;
+            const size_t l = (jj - kk) * sizeof(unsigned);
+            std::memmove(&freq[kk + 1], &freq[kk], l);
+            freq[kk] = f;
+            std::memmove(&son[kk + 1], &son[kk], l);
+            son[kk] = i;
+        }
+        for (int i = 0; i < T; i++)
+        {
+            const int k = son[i];
+            if (k >= T)
+                prnt[k] = i;
+            else
+                prnt[k] = prnt[k + 1] = i;
+        }
+    }
+
+    void update(int c)
+    {
+        if (freq[R] == MAX_FREQ)
+            reconst();
+
+        c = prnt[c + T];
+        do
+        {
+            unsigned k = ++freq[c];
+            int l = c + 1;
+            if (k > freq[l])
+            {
+                while (k > freq[++l])
+                    ;
+                l--;
+                freq[c] = freq[l];
+                freq[l] = k;
+
+                int i = son[c];
+                prnt[i] = l;
+                if (i < T)
+                    prnt[i + 1] = l;
+
+                int j = son[l];
+                son[l] = i;
+
+                prnt[j] = c;
+                if (j < T)
+                    prnt[j + 1] = c;
+                son[c] = j;
+
+                c = l;
+            }
+        } while ((c = prnt[c]) != 0);
+    }
+
+    int DecodeChar()
+    {
+        unsigned c = son[R];
+        while (c < T)
+        {
+            const int bit = GetBit();
+            c += static_cast<unsigned>(bit);
+            c = son[c];
+        }
+        c -= T;
+        update(static_cast<int>(c));
+        return static_cast<int>(c);
+    }
+
+    int DecodePosition()
+    {
+        unsigned i = GetByte();
+        unsigned c = static_cast<unsigned>(d_code[i]) << 6;
+        unsigned j = d_len[i];
+
+        j -= 2;
+        while (j--)
+            i = (i << 1) + static_cast<unsigned>(GetBit());
+
+        return static_cast<int>(c | (i & 0x3f));
+    }
+};
+} // namespace
+
+bool OgfDecompressLZ(const uint8_t* src, size_t srcSize, std::vector<uint8_t>& out)
+{
+    if (!src || srcSize < 4)
+        return false;
+
+    LzHufDecoder decoder;
+    return decoder.Run(src, srcSize, out);
+}
