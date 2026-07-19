@@ -523,7 +523,7 @@ void CModel::Update(float dt) {
         if (m_AnimationDuration - m_AnimationDuration/100.f * 1.f <= m_CurrentTime)
             m_CurrentTime = 0.f;
 
-        m_CurrentTime += dt/2 * m_TicksPerSecond; // seconds to ticks
+        m_CurrentTime += dt * m_TicksPerSecond; // seconds to ticks
         float animTime = fmod(m_CurrentTime, m_AnimationDuration);
 
         if (scene && scene->HasAnimations())
