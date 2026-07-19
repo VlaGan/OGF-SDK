@@ -75,6 +75,11 @@ public:
     std::string m_modelPath{};
     std::string m_modelName{};
 
+    //-- OGF_S_DESC / OGF_S_LODS metadata - only populated for natively (.ogf)
+    //-- loaded models (LoadFromOGF), empty/default for the Assimp path.
+    SOgfDescription m_Description;
+    std::string m_LodPath;
+
     //-- Skeleton data
     CSkeleton m_Skeleton;
 

@@ -259,6 +259,14 @@ void CSkeleton::LoadFromOGF(const std::vector<SOgfBoneDef>& ogfBones) {
         bi.mIKTrans = bi.mLocalTransform;
         bi.isIK = false;
         bi.m_pParent = nullptr; // resolved below
+
+        //-- OGF-native metadata, straight passthrough from the loader
+        bi.m_OgfObb = src.obb;
+        bi.m_sOgfMaterial = src.material;
+        bi.m_OgfShape = src.shape;
+        bi.m_OgfIKData = src.ikData;
+        bi.m_fOgfMass = src.mass;
+        bi.m_vOgfCenterOfMass = src.centerOfMass;
     }
 
     int rootIndex = -1;

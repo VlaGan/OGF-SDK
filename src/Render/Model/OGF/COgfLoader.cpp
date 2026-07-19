@@ -324,6 +324,8 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
                 return false;
             }
             const ogf_vert_1w* src = reinterpret_cast<const ogf_vert_1w*>(base);
+            mesh.tangents.resize(vertCount);
+            mesh.binormals.resize(vertCount);
             for (ogf_u32 i = 0; i < vertCount; ++i)
             {
                 const ogf_vert_1w& s = src[i];
@@ -331,6 +333,8 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
                 v.position = {s.P[0], s.P[1], s.P[2]};
                 v.normal = {s.N[0], s.N[1], s.N[2]};
                 v.texcoord = {s.u, s.v};
+                mesh.tangents[i] = {s.T[0], s.T[1], s.T[2]};
+                mesh.binormals[i] = {s.B[0], s.B[1], s.B[2]};
                 setBone(v, 0, static_cast<int>(s.bone), 1.0f);
             }
         }
@@ -363,6 +367,8 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
             return false;
         }
         const ogf_vert_2w* src = reinterpret_cast<const ogf_vert_2w*>(base);
+        mesh.tangents.resize(vertCount);
+        mesh.binormals.resize(vertCount);
         for (ogf_u32 i = 0; i < vertCount; ++i)
         {
             const ogf_vert_2w& s = src[i];
@@ -370,6 +376,8 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
             v.position = {s.P[0], s.P[1], s.P[2]};
             v.normal = {s.N[0], s.N[1], s.N[2]};
             v.texcoord = {s.u, s.v};
+            mesh.tangents[i] = {s.T[0], s.T[1], s.T[2]};
+            mesh.binormals[i] = {s.B[0], s.B[1], s.B[2]};
             setBone(v, 0, s.bone0, 1.0f - s.w);
             setBone(v, 1, s.bone1, s.w);
         }
@@ -384,6 +392,8 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
             return false;
         }
         const ogf_vert_3w* src = reinterpret_cast<const ogf_vert_3w*>(base);
+        mesh.tangents.resize(vertCount);
+        mesh.binormals.resize(vertCount);
         for (ogf_u32 i = 0; i < vertCount; ++i)
         {
             const ogf_vert_3w& s = src[i];
@@ -391,6 +401,8 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
             v.position = {s.P[0], s.P[1], s.P[2]};
             v.normal = {s.N[0], s.N[1], s.N[2]};
             v.texcoord = {s.u, s.v};
+            mesh.tangents[i] = {s.T[0], s.T[1], s.T[2]};
+            mesh.binormals[i] = {s.B[0], s.B[1], s.B[2]};
             setBone(v, 0, s.bone[0], s.w[0]);
             setBone(v, 1, s.bone[1], s.w[1]);
             setBone(v, 2, s.bone[2], 1.0f - s.w[0] - s.w[1]);
@@ -406,6 +418,8 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
             return false;
         }
         const ogf_vert_4w* src = reinterpret_cast<const ogf_vert_4w*>(base);
+        mesh.tangents.resize(vertCount);
+        mesh.binormals.resize(vertCount);
         for (ogf_u32 i = 0; i < vertCount; ++i)
         {
             const ogf_vert_4w& s = src[i];
@@ -413,6 +427,8 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
             v.position = {s.P[0], s.P[1], s.P[2]};
             v.normal = {s.N[0], s.N[1], s.N[2]};
             v.texcoord = {s.u, s.v};
+            mesh.tangents[i] = {s.T[0], s.T[1], s.T[2]};
+            mesh.binormals[i] = {s.B[0], s.B[1], s.B[2]};
             setBone(v, 0, s.bone[0], s.w[0]);
             setBone(v, 1, s.bone[1], s.w[1]);
             setBone(v, 2, s.bone[2], s.w[2]);
@@ -614,9 +630,73 @@ bool COgfLoader::LoadMotionRefs(COgfChunkedReader& r, ogf_u8 formatVersion, SOgf
 }
 
 //----------------------------------------------------------------------------
-//-- OGF_S_SMPARAMS + OGF_S_MOTIONS decoding. Both an .omf file's top level
-//-- AND (in principle) an .ogf's own top level use this exact same chunk
-//-- pair/layout, so this one routine serves either case.
+//-- OGF_S_DESC: authoring/export metadata. Ported from OGF-tool's
+//-- Description.Load - including its version-ambiguity heuristic: the chunk
+//-- carries no explicit version tag, so whether the three timers are 32-bit
+//-- or 64-bit is inferred by checking which interpretation makes the total
+//-- bytes read match the chunk's declared size.
+//----------------------------------------------------------------------------
+void COgfLoader::LoadDescription(COgfChunkedReader& r, ogf_u8 formatVersion, SOgfModel& out)
+{
+    const ogf_u32 descId = (formatVersion == OGF_FORMAT_VERSION) ? (ogf_u32)OGF_S_DESC : (ogf_u32)OGF3_S_DESC;
+
+    COgfChunkedReader d;
+    if (!r.open_chunk(descId, d))
+        return;
+
+    const size_t chunkSize = d.size();
+
+    SOgfDescription desc;
+    desc.sourceFile = d.r_stringZ();
+    desc.exportTool = d.r_stringZ();
+    const int64_t exportTime64 = static_cast<int64_t>(d.r_u32()) | (static_cast<int64_t>(d.r_u32()) << 32);
+    desc.ownerName = d.r_stringZ();
+    const int64_t creationTime64 = static_cast<int64_t>(d.r_u32()) | (static_cast<int64_t>(d.r_u32()) << 32);
+    desc.lastModifiedByTool = d.r_stringZ();
+    const int64_t modifiedTime64 = static_cast<int64_t>(d.r_u32()) | (static_cast<int64_t>(d.r_u32()) << 32);
+
+    if (d.tell() == chunkSize) // consumed exactly the whole chunk with 8-byte timers
+    {
+        desc.fourByteTimers = false;
+        desc.exportTime = exportTime64;
+        desc.creationTime = creationTime64;
+        desc.modifiedTime = modifiedTime64;
+    }
+    else
+    {
+        // re-read with 32-bit timers instead - reset and parse again
+        COgfChunkedReader d2;
+        r.open_chunk(descId, d2);
+        desc.sourceFile = d2.r_stringZ();
+        desc.exportTool = d2.r_stringZ();
+        desc.exportTime = d2.r_u32();
+        desc.ownerName = d2.r_stringZ();
+        desc.creationTime = d2.r_u32();
+        desc.lastModifiedByTool = d2.r_stringZ();
+        desc.modifiedTime = d2.r_u32();
+        desc.fourByteTimers = true;
+    }
+
+    desc.present = true;
+    out.description = std::move(desc);
+}
+
+//----------------------------------------------------------------------------
+//-- OGF_S_LODS (or OGF3_LODS for format_version 3): a single reference path
+//-- string to this model's separate LOD replacement geometry.
+//----------------------------------------------------------------------------
+void COgfLoader::LoadLod(COgfChunkedReader& r, ogf_u8 formatVersion, SOgfModel& out)
+{
+    const ogf_u32 lodId = (formatVersion == OGF_FORMAT_VERSION) ? (ogf_u32)OGF_S_LODS : (ogf_u32)OGF3_LODS;
+
+    COgfChunkedReader l;
+    if (!r.open_chunk(lodId, l))
+        return;
+
+    out.lodPath = l.r_stringZ();
+}
+
+
 //--
 //-- Ported from OGSR-Engine's xr_3da/SkeletonMotions.cpp (motions_value::load)
 //-- for the chunk layout, and Layers/xrRender/AnimationKeyCalculate.h for the
@@ -920,6 +1000,9 @@ bool COgfLoader::LoadVisual(COgfChunkedReader& r, SOgfModel& out, int depth)
         COgfChunkedReader userData;
         if (r.open_chunk(userDataId, userData))
             out.userData = userData.r_stringZ();
+
+        LoadDescription(r, formatVersion, out);
+        LoadLod(r, formatVersion, out);
     }
 
     const ogf_u32 verticesChunkId = VerticesChunkId(formatVersion);

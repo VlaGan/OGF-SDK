@@ -47,6 +47,7 @@ CMesh::CMesh(CMesh&& other) noexcept {
     m_Sampler = other.m_Sampler;
     m_IsTransparent = other.m_IsTransparent;
     m_TextureName = other.m_TextureName;
+    m_ShaderName = other.m_ShaderName;
 
     m_vVertices = std::move(other.m_vVertices);
     m_vIndices = std::move(other.m_vIndices);
@@ -76,6 +77,7 @@ CMesh& CMesh::operator=(CMesh&& other) noexcept {
         m_Sampler = other.m_Sampler;
         m_IsTransparent = other.m_IsTransparent;
         m_TextureName = other.m_TextureName;
+        m_ShaderName = other.m_ShaderName;
 
         m_vVertices = std::move(other.m_vVertices);
         m_vIndices = std::move(other.m_vIndices);
@@ -274,12 +276,13 @@ bool CMesh::LoadTextureResource(ID3D11Device* device, const std::string& texture
 //----------------------------------------------------------------------------
 //-- native (non-Assimp) geometry loading - used by COgfLoader for .ogf files
 //----------------------------------------------------------------------------
-bool CMesh::InitFromRaw(ID3D11Device* device, std::vector<Vertex> vertices, std::vector<UINT> indices, std::string texture_name) {
+bool CMesh::InitFromRaw(ID3D11Device* device, std::vector<Vertex> vertices, std::vector<UINT> indices, std::string texture_name, std::string shader_name) {
     if (vertices.empty() || indices.empty()) {
         LogMsg(eLogLevel::ERR, "!CMesh::InitFromRaw: empty vertex/index data for texture[%s]", texture_name.c_str());
         return false;
     }
 
+    m_ShaderName = std::move(shader_name);
     m_vVertices = std::move(vertices);
     m_vIndices = std::move(indices);
 

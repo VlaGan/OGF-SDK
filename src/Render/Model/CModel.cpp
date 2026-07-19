@@ -260,6 +260,9 @@ bool CModel::LoadFromOGF(ID3D11Device* device, const std::string& path)
 
     LogMsg("!Loading model [%s] (native .ogf).", m_modelName.c_str());
 
+    m_Description = ogf.description;
+    m_LodPath = ogf.lodPath;
+
     if (!ogf.bones.empty())
         m_Skeleton.LoadFromOGF(ogf.bones);
 
@@ -290,7 +293,7 @@ bool CModel::LoadFromOGF(ID3D11Device* device, const std::string& path)
             baseName = baseName.substr(bs + 1);
         std::string texture = "appdata/textures/" + m_modelName + "/" + baseName + ".png";
 
-        if (!meshObj.InitFromRaw(device, std::move(src.vertices), src.indices, texture)) {
+        if (!meshObj.InitFromRaw(device, std::move(src.vertices), src.indices, texture, src.shaderName)) {
             LogMsg(eLogLevel::ERR, "~CModel::LoadFromOGF: cant load mesh for model [%s]", m_modelName.c_str());
             continue;
         }

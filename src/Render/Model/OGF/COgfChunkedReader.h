@@ -48,6 +48,12 @@ public:
     size_t remaining() const { return (m_pos <= m_size) ? m_size - m_pos : 0; }
     size_t size() const { return m_size; }
 
+    //-- exact cursor position, unclamped - unlike remaining() (which floors
+    //-- at 0 whether the cursor landed exactly on the end or overshot past
+    //-- it), this can be compared directly against size() to tell those two
+    //-- cases apart.
+    size_t tell() const { return m_pos; }
+
 private:
     const uint8_t* m_data = nullptr;
     size_t m_size = 0;

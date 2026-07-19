@@ -28,7 +28,9 @@ public:
     //-- Same as Init(), but the vertex/index data is already prepared (e.g. by
     //-- COgfLoader when reading a native .ogf file) instead of coming from an
     //-- Assimp aiMesh. `vertices`/`indices` are consumed (moved from).
-    bool InitFromRaw(ID3D11Device* device, std::vector<Vertex> vertices, std::vector<UINT> indices, std::string texture_name);
+    //-- `shader_name` is the X-Ray shader name from OGF_TEXTURE (informational
+    //-- only for now - not used to pick an actual HLSL shader, see m_ShaderName).
+    bool InitFromRaw(ID3D11Device* device, std::vector<Vertex> vertices, std::vector<UINT> indices, std::string texture_name, std::string shader_name = "");
 
     void Render(ID3D11DeviceContext* context);
     void RenderSM(ID3D11DeviceContext* context);
@@ -72,4 +74,7 @@ public:
 
     bool m_IsTransparent{};
     std::string m_TextureName{};
+
+    //-- X-Ray shader name (OGF_TEXTURE's 2nd string, like "models\\model")
+    std::string m_ShaderName{};
 };

@@ -61,6 +61,8 @@ private:
     static bool LoadIndices(COgfChunkedReader& r, SOgfMeshDef& mesh, ogf_u32 indicesChunkId);
     static bool LoadSkeleton(COgfChunkedReader& r, SOgfModel& out, ogf_u8 formatVersion);
     static bool LoadMotionRefs(COgfChunkedReader& r, ogf_u8 formatVersion, SOgfModel& out);
+    static void LoadDescription(COgfChunkedReader& r, ogf_u8 formatVersion, SOgfModel& out);
+    static void LoadLod(COgfChunkedReader& r, ogf_u8 formatVersion, SOgfModel& out);
 
     //-- shared by embedded (rare) and external .omf motion data:
     //-- parses OGF_S_SMPARAMS (only for its bone-name table) + OGF_S_MOTIONS

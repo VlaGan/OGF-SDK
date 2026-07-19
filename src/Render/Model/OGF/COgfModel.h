@@ -90,6 +90,27 @@ struct SOgfIKData
     float friction = 0.f;
 };
 
+//-- OGF_S_DESC: export/authoring metadata (source .max/.ogf name, tool used,
+//-- owner, timestamps). Byte-exact with OGF-tool's Description class -
+//-- including its "try 8-byte then fall back to 4-byte" timer heuristic,
+//-- since older X-Ray SDK tools wrote 32-bit Unix timestamps while newer
+//-- ones write 64-bit - the chunk carries no version tag to tell them apart,
+//-- only the total chunk size (checked against both possible layouts).
+struct SOgfDescription
+{
+    bool present = false; // false if the model has no OGF_S_DESC at all
+
+    std::string sourceFile; // original authoring file (e.g. a .max scene)
+    std::string exportTool; // tool name/version that exported this .ogf
+    int64_t exportTime = 0; // unix timestamp
+    std::string ownerName;
+    int64_t creationTime = 0;
+    std::string lastModifiedByTool;
+    int64_t modifiedTime = 0;
+
+    bool fourByteTimers = true; // which of the two timer layouts matched
+};
+
 //-- one skeleton bone, as read from OGF_S_BONE_NAMES / OGF_S_IKDATA
 struct SOgfBoneDef
 {
@@ -120,6 +141,23 @@ struct SOgfMeshDef
 {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+
+    //-- Tangent/binormal, parallel to `vertices` (same index, same count) -
+    //-- kept separate from the Vertex struct on purpose: Vertex is the
+    //-- render-side layout shared with CMesh/the D3D11 input assembler/HLSL,
+    //-- and touching it means touching the whole render pipeline. These
+    //-- exist purely so a future .ogf/.omf exporter doesn't have to
+    //-- recompute tangent space for geometry that already had it.
+    //--
+    //-- Populated for skinned formats that store T/B in the file (2L/3L/4L
+    //-- always do; 1L only for format_version 4, not format_version 3's
+    //-- legacy 36-byte layout). Left EMPTY for static (MT_NORMAL) geometry -
+    //-- the plain FVF vertex format never carries tangent/binormal at all,
+    //-- so there is nothing to preserve; a future exporter that needs them
+    //-- (e.g. to upgrade a static mesh into a bump-mapped one) has to compute
+    //-- them algorithmically (standard position+normal+UV+triangle method).
+    std::vector<DirectX::XMFLOAT3> tangents;
+    std::vector<DirectX::XMFLOAT3> binormals;
 
     std::string textureName; // as stored in the file (no path, no extension)
     std::string shaderName;
@@ -152,4 +190,12 @@ struct SOgfModel
     //-- OGF_S_USERDATA: an arbitrary script/config text blob some models
     //-- carry (e.g. attachment point definitions for weapons). Empty if absent.
     std::string userData;
+
+    //-- OGF_S_DESC: authoring/export metadata. `present=false` if absent.
+    SOgfDescription description;
+
+    //-- OGF_S_LODS (or OGF3_LODS for format_version 3): a reference path to
+    //-- this model's LOD replacement, e.g. "smart_terrains\lod\some_lod".
+    //-- Empty if the model has no separate LOD variant.
+    std::string lodPath;
 };

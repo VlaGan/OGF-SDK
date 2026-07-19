@@ -35,13 +35,25 @@ struct CBoneInstance {
 	std::vector<CBoneInstance*> m_vChilds; // Child bones
 
 
-	DirectX::XMFLOAT3 m_vCurrentPos;    // Current position (for simulation) ѕоточна позиц≥€ (симульована)
+	DirectX::XMFLOAT3 m_vCurrentPos;    // Current position (for simulation)
 	DirectX::XMFLOAT3 m_vPrevPos;       // Previous position (Verlet)
 	float m_fStiffness = 0.25f;         // Stiffness (0.1Ц0.5)
 	float m_fDamping = 0.5f;            // Damping (0.1Ц0.9)
 	float m_fMass = 0.5f;               // Bone mass
 	bool m_bSimulatePhysics{};          // Simulate physics for this bone (hair)
 	float m_fBoneLenght{};              // Bone lenght from bone to parent
+
+	//-- OGF-native bone data (OGF_S_BONE_NAMES / OGF_S_IKDATA), only populated
+	//-- for natively (.ogf) loaded skeletons (CSkeleton::LoadFromOGF). Named
+	//-- with an "Ogf" prefix on purpose - unrelated to m_fMass/m_bSimulatePhysics
+	//-- above, which are for the hair-bone verlet simulation, not the game's
+	//-- own ragdoll/physics data.
+	SOgfObb m_OgfObb;                     // bone bounding box (hit-detection/picking)
+	std::string m_sOgfMaterial;           // game material name (surface sounds etc.)
+	SOgfBoneShape m_OgfShape;             // ragdoll/collision shape (box/sphere/cylinder)
+	SOgfIKData m_OgfIKData;               // joint physics parameters
+	float m_fOgfMass{};                   // ragdoll bone mass (as authored, not the hair-sim m_fMass)
+	DirectX::XMFLOAT3 m_vOgfCenterOfMass{};
 };
 
 class CSkeleton {
