@@ -7,10 +7,6 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image/stb_image.h>
-
 #include "../CRenderer.h"
 
 //-- Constructor / destructor
@@ -34,7 +30,7 @@ void CMesh::Release() {
     m_ShaderSM.reset();
     m_ShaderGBuffer.reset();
 
-    RELEASE(m_Texture);
+    m_Texture.Release();
     RELEASE(m_Sampler);
 }
 
@@ -43,10 +39,7 @@ CMesh::CMesh(CMesh&& other) noexcept {
     m_IndexBuffer = other.m_IndexBuffer;
     m_VertexCount = other.m_VertexCount;
     m_IndexCount = other.m_IndexCount;
-    m_Texture = other.m_Texture;
     m_Sampler = other.m_Sampler;
-    m_IsTransparent = other.m_IsTransparent;
-    m_TextureName = other.m_TextureName;
     m_ShaderName = other.m_ShaderName;
 
     m_vVertices = std::move(other.m_vVertices);
@@ -54,15 +47,15 @@ CMesh::CMesh(CMesh&& other) noexcept {
 
     other.m_VertexBuffer = nullptr;
     other.m_IndexBuffer = nullptr;
-    other.m_Texture = nullptr;
     other.m_Sampler = nullptr;
     other.m_VertexCount = 0;
     other.m_IndexCount = 0;
-    other.m_IsTransparent = false;
 
     m_Shader = std::move(other.m_Shader);
     m_ShaderSM = std::move(other.m_ShaderSM);
     m_ShaderGBuffer = std::move(other.m_ShaderGBuffer);
+
+    m_Texture = std::move(other.m_Texture);
 }
 
 CMesh& CMesh::operator=(CMesh&& other) noexcept {
@@ -73,10 +66,7 @@ CMesh& CMesh::operator=(CMesh&& other) noexcept {
         m_IndexBuffer = other.m_IndexBuffer;
         m_VertexCount = other.m_VertexCount;
         m_IndexCount = other.m_IndexCount;
-        m_Texture = other.m_Texture;
         m_Sampler = other.m_Sampler;
-        m_IsTransparent = other.m_IsTransparent;
-        m_TextureName = other.m_TextureName;
         m_ShaderName = other.m_ShaderName;
 
         m_vVertices = std::move(other.m_vVertices);
@@ -84,15 +74,14 @@ CMesh& CMesh::operator=(CMesh&& other) noexcept {
 
         other.m_VertexBuffer = nullptr;
         other.m_IndexBuffer = nullptr;
-        other.m_Texture = nullptr;
         other.m_Sampler = nullptr;
         other.m_VertexCount = 0;
         other.m_IndexCount = 0;
-        other.m_IsTransparent = false;
 
         m_Shader = std::move(other.m_Shader);
         m_ShaderSM = std::move(other.m_ShaderSM);
         m_ShaderGBuffer = std::move(other.m_ShaderGBuffer);
+        m_Texture = std::move(other.m_Texture);
     }
     return *this;
 }
@@ -101,17 +90,6 @@ CMesh& CMesh::operator=(CMesh&& other) noexcept {
 //----------------------------------------------------------------------------
 //-- VlaGan: Loading Mesh
 //----------------------------------------------------------------------------
-bool IsTextureTransparent(const unsigned char* data, int width, int height, int channels)
-{
-    if (channels < 4) return false;
-
-    for (int i = 0; i < width * height; ++i) {
-        int alpha = data[i * 4 + 3];
-        if (alpha < 255) return true; // або < threshold
-    }
-    return false;
-}
-
 bool CMesh::Init(ID3D11Device* device, aiMesh* mesh, std::string texture_name) {
 
     //-- Fill Vertex buffer
@@ -209,59 +187,9 @@ void CMesh::CreateDefaultShaders(ID3D11Device* device) {
 }
 
 bool CMesh::LoadTextureResource(ID3D11Device* device, const std::string& texture_name) {
-    //-- simple example texture loading (later should be CTexture class or CTexture container manager)
-    int x, y, channels_in_file;
-    stbi_info(texture_name.c_str(), &x, &y, &channels_in_file);
-    LogMsg("Texture [%s] has %d channels in file", texture_name.c_str(), channels_in_file);
-    int w, h, channels;
-    unsigned char* data = stbi_load(texture_name.c_str(), &w, &h, &channels, STBI_rgb_alpha);
-    if (!data) {
-        LogMsg(eLogLevel::ERR, "!CMesh::LoadTextureResource: cant load texture[%s] fall back to default[image.png]", texture_name.c_str());
-        data = stbi_load("appdata/textures/image.png", &w, &h, &channels, STBI_rgb_alpha);
-    }
-    if (!data)
+
+    if (!m_Texture.LoadFromFile(device, texture_name))
         return false;
-
-    m_TextureName = texture_name;
-
-    m_IsTransparent = IsTextureTransparent(data, w, h, channels);
-    if (m_IsTransparent)
-        LogMsg("!!!Transparent texture found [%s]", texture_name.c_str());
-
-    D3D11_TEXTURE2D_DESC desc = {};
-    desc.Width = w;
-    desc.Height = h;
-    desc.MipLevels = 1;
-    desc.ArraySize = 1;
-    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    desc.SampleDesc.Count = 1;
-    desc.MiscFlags = 0;
-    desc.CPUAccessFlags = 0;
-
-    D3D11_SUBRESOURCE_DATA initTex = {};
-    initTex.pSysMem = data;
-    initTex.SysMemPitch = w * 4;
-
-    ID3D11Texture2D* texture = nullptr;
-    HRESULT hr = device->CreateTexture2D(&desc, &initTex, &texture);
-    if (FAILED(hr)) {
-        MessageBox(nullptr, L"CreateTexture2D failed", L"Error", MB_OK);
-        stbi_image_free(data);
-        return false;
-    }
-
-    hr = device->CreateShaderResourceView(texture, nullptr, &m_Texture);
-    if (FAILED(hr)) {
-        MessageBox(nullptr, L"CreateShaderResourceView failed", L"Error", MB_OK);
-        texture->Release();
-        stbi_image_free(data);
-        return false;
-    }
-    if (texture)
-        texture->Release();
-    stbi_image_free(data);
 
     D3D11_SAMPLER_DESC sampDesc = {};
     sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -353,7 +281,10 @@ void CMesh::Render(ID3D11DeviceContext* context) {
     //-- texture to shader
     m_Shader.get()->Bind(context);
 
-    context->PSSetShaderResources(0, 1, &m_Texture);
+    ID3D11ShaderResourceView* srv = m_Texture.GetSRV();
+    if(srv)
+        context->PSSetShaderResources(0, 1, &srv);
+
     context->PSSetSamplers(0, 1, &m_Sampler);
 
     UINT stride = sizeof(Vertex);

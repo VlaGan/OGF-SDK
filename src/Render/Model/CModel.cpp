@@ -282,12 +282,13 @@ bool CModel::LoadFromOGF(ID3D11Device* device, const std::string& path)
     m_pCurrentMotion = nullptr;
     if (!ogf.motions.empty()) {
         m_vMotions = std::move(ogf.motions);
-        SetMotion(&m_vMotions[0]);
+        //SetMotion(&m_vMotions[0]);
     }
 
     m_Meshes.clear();
     m_Meshes.reserve(ogf.meshes.size());
 
+    CSettings& settings = CSettings::Get();
     for (auto& src : ogf.meshes) {
         CMesh meshObj;
 
@@ -298,7 +299,7 @@ bool CModel::LoadFromOGF(ID3D11Device* device, const std::string& path)
         size_t bs = baseName.find_last_of("/\\");
         if (bs != std::string::npos)
             baseName = baseName.substr(bs + 1);
-        std::string texture = "appdata/textures/" + m_modelName + "/" + baseName + ".png";
+        std::string texture = settings.GetTexturePath(src.textureName + ".dds");
 
         if (!meshObj.InitFromRaw(device, std::move(src.vertices), src.indices, texture, src.shaderName)) {
             LogMsg(eLogLevel::ERR, "~CModel::LoadFromOGF: cant load mesh for model [%s]", m_modelName.c_str());
@@ -593,7 +594,7 @@ void CModel::Render(ID3D11DeviceContext* context, bool transparent)
 
     //-- render meshes
     for (auto& mesh : m_Meshes)
-        if(mesh.m_IsTransparent == transparent)
+        if(mesh.IsTextureTransparent() == transparent)
             mesh.Render(context);
 }
 

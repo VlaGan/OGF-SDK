@@ -105,14 +105,14 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;$(ProjectDir)3rd_party\imgui-docking\ImGui\;$(ProjectDir)3rd_party\assimp\include;$(ProjectDir)3rd_party\stb_image\include;$(ProjectDir)3rd_party\IconsFontAwesome\include;$(ProjectDir)3rd_party\ImGuizmo\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;$(ProjectDir)3rd_party\imgui-docking\ImGui\;$(ProjectDir)3rd_party\assimp\include;$(ProjectDir)3rd_party\stb_image\include;$(ProjectDir)3rd_party\IconsFontAwesome\include;$(ProjectDir)3rd_party\ImGuizmo\;$(ProjectDir)3rd_party\DirectXTex\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)3rd_party\assimp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;assimp-vc143-mt.lib;DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rd_party\assimp\lib;$(ProjectDir)3rd_party\DirectXTex\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -124,14 +124,14 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;$(ProjectDir)3rd_party\imgui-docking\ImGui\;$(ProjectDir)3rd_party\assimp\include;$(ProjectDir)3rd_party\stb_image\include;$(ProjectDir)3rd_party\IconsFontAwesome\include;$(ProjectDir)3rd_party\ImGuizmo\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rd_party\imgui-docking\;$(ProjectDir)3rd_party\imgui-docking\ImGui\;$(ProjectDir)3rd_party\assimp\include;$(ProjectDir)3rd_party\stb_image\include;$(ProjectDir)3rd_party\IconsFontAwesome\include;$(ProjectDir)3rd_party\ImGuizmo\;$(ProjectDir)3rd_party\DirectXTex\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)3rd_party\assimp\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;assimp-vc143-mt.lib;DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rd_party\assimp\lib;$(ProjectDir)3rd_party\DirectXTex\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -157,6 +157,7 @@
     <ClInclude Include="src\Render\Model\OGF\ogf_format.h" />
     <ClInclude Include="src\Render\Templates\ConstantBuffer.h" />
     <ClInclude Include="src\Render\Templates\CShader.h" />
+    <ClInclude Include="src\Render\Templates\CTexture.h" />
     <ClInclude Include="src\Render\Templates\FullScreenQuad.h" />
     <ClInclude Include="src\Render\Templates\RenderTarget.h" />
     <ClInclude Include="src\Render\_render_structs.h" />
@@ -199,6 +200,7 @@
     <ClCompile Include="src\Render\Model\OGF\COgfLzHuf.cpp" />
     <ClCompile Include="src\Render\Templates\ConstantBuffer.cpp" />
     <ClCompile Include="src\Render\Templates\CShader.cpp" />
+    <ClCompile Include="src\Render\Templates\CTexture.cpp" />
     <ClCompile Include="src\Render\Templates\FullScreenQuad.cpp" />
     <ClCompile Include="src\Render\Templates\RenderTarget.cpp" />
     <ClCompile Include="src\UI\CImGuiWindow.cpp" />

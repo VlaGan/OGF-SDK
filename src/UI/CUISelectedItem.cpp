@@ -85,12 +85,12 @@ void CUISelectedItemProp::RenderContent()
 		ImGui::Text(ICON_FA_LIST "  Mesh count: %zu", model->m_Meshes.size());
 		for (size_t i = 0; i < model->m_Meshes.size(); ++i) {
 			CMesh& mesh = model->m_Meshes[i];
-			std::string label = "[" + std::to_string(i) + "] " + (mesh.m_TextureName.empty() ? "(no texture)" : mesh.m_TextureName);
+			std::string label = "[" + std::to_string(i) + "] " + (mesh.GetTextureName().empty() ? "(no texture)" : mesh.GetTextureName());
 			if (ImGui::TreeNode((void*)(intptr_t)i, "%s", label.c_str())) {
-				ImGui::Text(ICON_FA_IMAGE "  Texture: %s", mesh.m_TextureName.c_str());
+				ImGui::Text(ICON_FA_IMAGE "  Texture: %s", mesh.GetTextureName().c_str());
 				ImGui::Text(ICON_FA_DRAW_POLYGON "  Shader: %s", mesh.m_ShaderName.empty() ? "n/a" : mesh.m_ShaderName.c_str());
 				ImGui::Text(ICON_FA_SHAPES "  Vertices: %u, Indices: %u", mesh.m_VertexCount, mesh.m_IndexCount);
-				if (mesh.m_IsTransparent)
+				if (mesh.IsTextureTransparent())
 					ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), ICON_FA_CIRCLE_INFO "  Transparent texture");
 				ImGui::TreePop();
 			}
@@ -160,7 +160,7 @@ void CUISelectedItemProp::RenderContent()
 	}
 
 	// Animation Section
-	if (ImGui::CollapsingHeader(ICON_FA_PERSON_RUNNING "  Animation", ImGuiTreeNodeFlags_DefaultOpen)) {
+	if (ImGui::CollapsingHeader(ICON_FA_PERSON_RUNNING "  Animation")) {
 		if (!model->m_vMotions.empty()) {
 			// Motion Selection Dropdown
 			static int current_motion_index = 0;
@@ -195,4 +195,15 @@ void CUISelectedItemProp::RenderContent()
 			ImGui::Separator();
 		}
 	}
+
+	//-- Textures fast preview
+	if (ImGui::CollapsingHeader(ICON_FA_FILE_IMAGE "  Textures preview")) {
+		for (auto& mesh : model->m_Meshes) {
+			ImGui::Text("%s [%dx%d]", mesh.m_Texture.GetFileName().c_str(), 
+				mesh.m_Texture.GetWidth(), mesh.m_Texture.GetHeight());
+
+			ImGui::Image(mesh.m_Texture.GetSRV(), ImVec2(250, 250));
+		}
+	}
+
 }

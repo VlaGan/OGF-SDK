@@ -7,6 +7,7 @@
 #include <d3d11.h>
 #include <vector>
 #include "../Templates/CShader.h"
+#include "../Templates/CTexture.h"
 #include "../_render_structs.h"
 #include "../CShaderContainer.h"
 
@@ -43,6 +44,10 @@ public:
 
     void UpdateVertexBuffer(ID3D11Device* device);
 
+public:
+    bool IsTextureTransparent() { return m_Texture.IsTextureTransparent(); }
+    std::string GetTextureName() { return m_Texture.GetFileName(); }
+
 private:
     //-- shared by Init() and InitFromRaw(): loads `texture_name` (falls back to
     //-- appdata/textures/image.png on failure) into m_Texture/m_Sampler and
@@ -68,12 +73,8 @@ public:
     std::shared_ptr<CShader> m_ShaderGBuffer;
 
     //-- Textures
-    ID3D11ShaderResourceView* m_Texture{};
-    //ID3D11ShaderResourceView* m_TextureNM{};
+    CTexture m_Texture;
     ID3D11SamplerState* m_Sampler{};
-
-    bool m_IsTransparent{};
-    std::string m_TextureName{};
 
     //-- X-Ray shader name (OGF_TEXTURE's 2nd string, like "models\\model")
     std::string m_ShaderName{};
