@@ -257,14 +257,14 @@
     <ClCompile Include="src\Render\Model\OGF\COgfLzHuf.cpp">
       <Filter>Render\Model\OGF</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\CSettings.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Core\CFileDialog.cpp">
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Render\Templates\CTexture.cpp">
       <Filter>Render\Templates</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\CSettings.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
