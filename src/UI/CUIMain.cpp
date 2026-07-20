@@ -18,6 +18,9 @@
 #include <fontawesome/IconsFontAwesome6.h>
 #include <ImGuizmo.h>
 
+#include "../Core/CSettings.h"
+#include "../Core/CFileDialog.h"
+
 //-------------------------------------------------------------------------
 //-- Ctor / Dtor
 //-------------------------------------------------------------------------
@@ -261,23 +264,74 @@ void CUIMain::Render()
         ImGui::PopStyleColor();
         ImGui::Separator();
 
+        //-- File manipulation menu
         if (ImGui::BeginMenu(ICON_FA_FILE "  File")) {
-            ImGui::MenuItem(ICON_FA_FILE "  New");
-            ImGui::MenuItem(ICON_FA_FOLDER_OPEN "  Open");
-            ImGui::MenuItem(ICON_FA_FLOPPY_DISK "  Save");
+            if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "  Import")) {
+
+                COMDLG_FILTERSPEC filters[] = { 
+                    { L"OGF Models", L"*.ogf" }, 
+                    { L"FBX Models", L"*.fbx" }, 
+                    { L"All Files", L"*.*" } 
+                };
+
+                std::filesystem::path file = FileDialog::OpenFile(m_hWND, _countof(filters), filters);
+                if (!file.empty())
+                {
+                    std::string ext = file.extension().string();
+                    CScene::Get().LoadModel(file.string(), ext);
+                }
+            }
+            ImGui::MenuItem(ICON_FA_FLOPPY_DISK "  Export");
             ImGui::EndMenu();
         }
 
+        //-- Edit menu
         if (ImGui::BeginMenu(ICON_FA_PEN "  Edit")) {
             ImGui::MenuItem(ICON_FA_ROTATE_LEFT "  Undo");
             ImGui::MenuItem(ICON_FA_ROTATE_RIGHT "  Redo");
             ImGui::EndMenu();
         }
 
+        //-- UI windows View Menu
         if (ImGui::BeginMenu(ICON_FA_EYE "  View")) {
 
             for (auto& window : m_Windows)
                 ImGui::MenuItem(window->TitleWithIcon().c_str(), nullptr, &window->m_Opened);
+
+            ImGui::EndMenu();
+        }
+
+        //-- General App settings
+        if (ImGui::BeginMenu(ICON_FA_GEAR "  Settings"))
+        {
+            CSettings& settings = CSettings::Get();
+
+            ImGui::SeparatorText("GAMEDATA PATHS");
+            if (ImGui::Button(ICON_FA_FOLDER_OPEN "##SelectGameData"))
+            {
+                std::filesystem::path folder = FileDialog::OpenFolder(m_hWND);
+                if (!folder.empty())
+                    settings.m_GamedataPath = folder.string();
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Select gamedata folder");
+
+            ImGui::SameLine();
+
+            ImGui::SetNextItemWidth(400);
+            const char* input_name = "-> GAMEDATA##GameDataPath";
+            if (settings.GamedataPathInited())
+                ImGui::InputText(input_name, settings.m_GamedataPath.data(),
+                    settings.m_GamedataPath.capacity() + 1, ImGuiInputTextFlags_ReadOnly);
+            else
+            {
+                static char empty[] = "No gamedata folder selected!";
+
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.35f, 0.35f, 1.f));
+                ImGui::InputText(input_name, empty, sizeof(empty), ImGuiInputTextFlags_ReadOnly);
+                ImGui::PopStyleColor();
+            }
+            ImGui::Spacing();
 
             ImGui::EndMenu();
         }

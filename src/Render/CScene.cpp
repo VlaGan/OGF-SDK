@@ -56,6 +56,12 @@ void CScene::DeleteModel(CModel* model) {
 	}
 }
 
+CModel* CScene::LoadModel(const std::string& path, const std::string& ext) {
+	if (ext == ".ogf")
+		return LoadModelFromOGF(path);
+	return LoadModel(path);
+}
+
 CModel* CScene::LoadModel(const std::string& path) {
 	CHW& hw = CHW::Get();
 	CModel* model = new CModel();

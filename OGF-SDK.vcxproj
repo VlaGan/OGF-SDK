@@ -136,7 +136,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\CCamera.h" />
+    <ClInclude Include="src\Core\CFileDialog.h" />
     <ClInclude Include="src\Core\CLog.h" />
+    <ClInclude Include="src\Core\CSettings.h" />
     <ClInclude Include="src\Core\OGF_SDK.h" />
     <ClInclude Include="src\Render\AssimpHelper\AssimpFunctions.h" />
     <ClInclude Include="src\Render\CHW.h" />
@@ -178,7 +180,9 @@
     <ClCompile Include="3rd_party\imgui-docking\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="3rd_party\ImGuizmo\ImGuizmo.cpp" />
     <ClCompile Include="src\Core\CCamera.cpp" />
+    <ClCompile Include="src\Core\CFileDialog.cpp" />
     <ClCompile Include="src\Core\CLog.cpp" />
+    <ClCompile Include="src\Core\CSettings.cpp" />
     <ClCompile Include="src\Core\OGF_SDK.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Render\CHW.cpp" />

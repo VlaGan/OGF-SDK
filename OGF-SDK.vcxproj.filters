@@ -141,6 +141,12 @@
     <ClInclude Include="src\Render\Model\OGF\COgfLzHuf.h">
       <Filter>Render\Model\OGF</Filter>
     </ClInclude>
+    <ClInclude Include="src\Core\CSettings.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Core\CFileDialog.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -247,6 +253,12 @@
     </ClCompile>
     <ClCompile Include="src\Render\Model\OGF\COgfLzHuf.cpp">
       <Filter>Render\Model\OGF</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\CSettings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\CFileDialog.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

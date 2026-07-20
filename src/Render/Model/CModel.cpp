@@ -14,6 +14,8 @@
 #include "CMotion.h"
 #include "OGF/COgfLoader.h"
 
+#include "../../Core/CSettings.h"
+
 
 extern void LogMsg(const char* fmt, ...);
 
@@ -268,8 +270,13 @@ bool CModel::LoadFromOGF(ID3D11Device* device, const std::string& path)
 
     //-- motions live in separate .omf files, referenced by name from the
     //-- .ogf itself (OGF_S_MOTION_REFS/2) - resolve and decode them now
-    if (!ogf.motionRefs.empty())
-        COgfLoader::LoadMotions(path, ogf);
+    if (!ogf.motionRefs.empty()) {
+        CSettings& settings = CSettings::Get();
+        if (!settings.GamedataPath().empty())
+            COgfLoader::LoadMotions(settings.GetMeshesPath(), ogf);
+        else
+            COgfLoader::LoadMotions(path, ogf);
+    }
 
     m_vMotions.clear();
     m_pCurrentMotion = nullptr;

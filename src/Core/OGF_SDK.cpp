@@ -9,7 +9,7 @@
 #include "../Render/CRenderer.h"
 #include "../UI/CUIMain.h"
 #include "../_defines.h"
-#include "CCamera.h"
+#include "CSettings.h"
 
 UINT lastMouseX{};
 UINT lastMouseY{};
@@ -145,6 +145,8 @@ bool COGF_SDK::Create(HINSTANCE hInstance, int nCmdShow) {
 
     CUIMain& uiMain = CUIMain::Get();
     uiMain.Init(m_hWND);
+
+    CSettings::Get().ReadIni();
 
     return true;
 
