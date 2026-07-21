@@ -346,6 +346,9 @@ CMotion* CModel::GetMotion(std::string name) {
 //-- for animating interpolates bone position
 DirectX::XMMATRIX InterpolatePosition(const BoneMotionData& boneAnim, float time)
 {
+    if (!boneAnim.positions.size())
+        return DirectX::XMMatrixIdentity();
+
     if (boneAnim.positions.size() == 1)
         return DirectX::XMMatrixTranslationFromVector(XMLoadFloat3(&boneAnim.positions[0].position));
 
@@ -362,12 +365,15 @@ DirectX::XMMATRIX InterpolatePosition(const BoneMotionData& boneAnim, float time
         }
     }
     
-    return DirectX::XMMatrixIdentity();
+    return DirectX::XMMatrixTranslationFromVector(XMLoadFloat3(&boneAnim.positions.back().position));
 }
 
 //-- for animating interpolates bone rotation
 DirectX::XMMATRIX InterpolateRotation(const BoneMotionData& boneAnim, float time)
 {
+    if (!boneAnim.rotations.size())
+        return DirectX::XMMatrixIdentity();
+
     if (boneAnim.rotations.size() == 1)
         return DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionNormalize(XMLoadFloat4(&boneAnim.rotations[0].rotation)));
 
@@ -384,12 +390,16 @@ DirectX::XMMATRIX InterpolateRotation(const BoneMotionData& boneAnim, float time
         }
     }
 
-    return DirectX::XMMatrixIdentity();
+    return DirectX::XMMatrixRotationQuaternion(
+        DirectX::XMQuaternionNormalize(XMLoadFloat4(&boneAnim.rotations.back().rotation)));
 }
 
 //-- for animating interpolates bone scale
 DirectX::XMMATRIX InterpolateScaling(const BoneMotionData& boneAnim, float time)
 {
+    if (!boneAnim.scales.size())
+        return DirectX::XMMatrixIdentity();
+
     if (boneAnim.scales.size() == 1)
         return DirectX::XMMatrixScalingFromVector(XMLoadFloat3(&boneAnim.scales[0].scale));
 
@@ -406,7 +416,7 @@ DirectX::XMMATRIX InterpolateScaling(const BoneMotionData& boneAnim, float time)
         }
     }
 
-    return DirectX::XMMatrixIdentity();
+    return DirectX::XMMatrixScalingFromVector(XMLoadFloat3(&boneAnim.scales.back().scale));
 }
 
 //extern DirectX::XMFLOAT3 head_ajust;
@@ -530,12 +540,12 @@ void CModel::Update(float dt) {
 
     if (m_pCurrentMotion) { //-- else for simple visual rendering need to set not skinning shader
 
-        //-- skip 1% of motion because annoying glitching
-        if (m_AnimationDuration - m_AnimationDuration/100.f * 1.f <= m_CurrentTime)
+        //-- restart anim 
+        if (m_AnimationDuration <= m_CurrentTime)
             m_CurrentTime = 0.f;
 
         m_CurrentTime += dt * m_TicksPerSecond; // seconds to ticks
-        float animTime = fmod(m_CurrentTime, m_AnimationDuration);
+        float animTime = fmodf(m_CurrentTime, m_AnimationDuration);
 
         if (scene && scene->HasAnimations())
         {
@@ -545,12 +555,12 @@ void CModel::Update(float dt) {
             //-- then dont use assimp aiNode hierarchy (cuz that have lots of trash info)
             //------------------------------------------------------------------------------
             std::string root_bone = rootName(); //-- easyer for model changing
-            TraverseHierarchy(m_CurrentTime, scene->mRootNode->FindNode(root_bone.c_str()), XFORM());
+            TraverseHierarchy(animTime, scene->mRootNode->FindNode(root_bone.c_str()), XFORM());
         }
         else if (m_Skeleton.m_BoneCount)
         {
             //-- natively (.ogf) loaded model: no aiScene, walk CSkeleton's own tree instead
-            TraverseSkeleton(m_CurrentTime, m_Skeleton.GetRootBone(), XFORM());
+            TraverseSkeleton(animTime, m_Skeleton.GetRootBone(), XFORM());
         }
     }
 }
