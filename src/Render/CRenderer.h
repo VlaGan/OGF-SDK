@@ -31,6 +31,7 @@ public:
 	float m_ClearColor[4]{ 0.5f, 0.5f, 0.5f, 1.0f };
 
 	CRenderTarget* GetMainRT() { return &m_mnRT; }
+	CDebugRenderer* DebugRenderer() { return &m_debugRenderer; }
 
 	CConstantBuffer m_ConstantBuffer;
 	CConstantBuffer m_LightBuffer;

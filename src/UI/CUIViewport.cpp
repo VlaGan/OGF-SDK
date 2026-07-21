@@ -93,7 +93,8 @@ void CUIViewPort::DrawToolbar(ImVec2 imageOriginScreen)
 		kToolBtn + kPad * 2.0f,
 		kPad * 2.0f + kToolBtn * kToolCount + kGap * (kToolCount - 1));
 
-	ImGui::SetCursorScreenPos(ImVec2(imageOriginScreen.x + kMargin, imageOriginScreen.y + kMargin));
+	ImVec2 pos(imageOriginScreen.x + kMargin, imageOriginScreen.y + kMargin);
+	ImGui::SetCursorScreenPos(pos);
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, kCardBg);
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(kPad, kPad));
@@ -115,6 +116,28 @@ void CUIViewPort::DrawToolbar(ImVec2 imageOriginScreen)
 	ImGui::EndChild();
 	ImGui::PopStyleVar(3);
 	ImGui::PopStyleColor();
+
+	//-- Display gizmo mode | selected model name
+	pos.x = pos.x + childSize.x + kMargin;
+	pos.y += 10.f;
+	ImGui::SetCursorScreenPos(pos);
+	std::string desc_text = "NO SELECTED MODEL";
+	ImVec4 desc_color(1.f, 1.f, 0.f, 1.f);
+
+	if (scene.m_SelectedModel) {
+
+		switch (scene.m_GizmoMode) {
+			case eGizmoMode::eSelect: desc_text = "SELECT | "; break;
+			case eGizmoMode::eTranslate: desc_text = "TRANSLATE | "; break;
+			case eGizmoMode::eRotate: desc_text = "ROTATE | "; break;
+			case eGizmoMode::eScale: desc_text = "SCALE | "; break;
+			default: desc_text = "NONE | "; break;
+		}
+
+		desc_text += scene.m_SelectedModel->m_modelName;
+	}
+
+	ImGui::TextColored(desc_color, desc_text.c_str());
 }
 
 //-------------------------------------------------------------------------
@@ -125,7 +148,8 @@ void CUIViewPort::DrawToolbar(ImVec2 imageOriginScreen)
 void CUIViewPort::DrawOverlaysButton(ImVec2 imageOriginScreen, float vpWidth)
 {
 	CScene& scene = CScene::Get();
-
+	
+	float btnSize = 36.f;
 	float btnWidth = 104.0f;
 	ImVec2 btnPos(imageOriginScreen.x + vpWidth - btnWidth - kMargin, imageOriginScreen.y + kMargin);
 	ImGui::SetCursorScreenPos(btnPos);
@@ -134,7 +158,7 @@ void CUIViewPort::DrawOverlaysButton(ImVec2 imageOriginScreen, float vpWidth)
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.161f, 0.176f, 0.200f, 0.85f));
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
 
-	if (ImGui::Button(ICON_FA_LAYER_GROUP "  Overlays " ICON_FA_CARET_DOWN, ImVec2(btnWidth, kToolBtn)))
+	if (ImGui::Button(ICON_FA_LAYER_GROUP "  Overlays " ICON_FA_CARET_DOWN, ImVec2(btnWidth, btnSize)))
 		ImGui::OpenPopup("##vp_overlays_popup");
 
 	ImVec2 btnMin = ImGui::GetItemRectMin();
@@ -155,22 +179,77 @@ void CUIViewPort::DrawOverlaysButton(ImVec2 imageOriginScreen, float vpWidth)
 	}
 
 	//-- World/Local gizmo-space toggle, stacked directly under Overlays
-	ImGui::SetCursorScreenPos(ImVec2(btnMax.x - kToolBtn, btnMax.y + 6.0f));
+	ImGui::SetCursorScreenPos(ImVec2(btnMax.x - btnSize, btnMax.y + 6.0f));
 	const char* spaceIcon = scene.m_bGizmoWorldSpace ? ICON_FA_GLOBE : ICON_FA_CUBE;
 	const char* spaceTip = scene.m_bGizmoWorldSpace ? "World space (click for Local)" : "Local space (click for World)";
-	if (IconButton("##gizmo_space", spaceIcon, ImVec2(kToolBtn, kToolBtn), false))
+	if (IconButton("##gizmo_space", spaceIcon, ImVec2(btnSize, btnSize), false))
 		scene.m_bGizmoWorldSpace = !scene.m_bGizmoWorldSpace;
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("%s", spaceTip);
 
-	//-- controls hint, tucked under the space toggle so it can never
-	//-- collide with the left-hand toolbar even on narrow panels
-	std::string hint = "W/S/A/D  Move\nSpace/Ctrl  Up/Down\nRMB+LMB  Look";
-	ImVec2 hintSize = ImGui::CalcTextSize(hint.c_str());
-	ImGui::SetCursorScreenPos(ImVec2(btnMax.x - hintSize.x, btnMax.y + kToolBtn + 14.0f));
-	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.557f, 0.588f, 0.620f, 1.0f));
-	ImGui::Text("%s", hint.c_str());
-	ImGui::PopStyleColor();
+	//-----------------------------------------------------------------------------------
+	//-- Camera manipulation buttons
+	//-----------------------------------------------------------------------------------
+	CCamera* camera = scene.Camera();
+	std::string camera_tip;
+
+	//-- change camera projection
+	std::string proj_text = camera->m_mode == eCameraProjMode::ePerspective ? 
+		ICON_FA_CUBE "  Perspective" : ICON_FA_SQUARE "  Orthographic";
+
+	float proj_text_sx = ImGui::CalcTextSize(proj_text.c_str()).x + 20.f;
+
+	btnPos.x = btnPos.x - proj_text_sx - kMargin;
+	ImGui::SetCursorScreenPos(btnPos);
+	
+	//if (IconButton("##proj_mode", ICON_FA_CUBE, ImVec2(btnSize, btnSize),  false)) 
+	if(ImGui::Button(proj_text.c_str(), ImVec2(proj_text_sx, btnSize)))
+	{
+		camera->m_mode = camera->m_mode == eCameraProjMode::ePerspective ?
+			eCameraProjMode::eOrthographic : eCameraProjMode::ePerspective;
+	}
+
+	camera_tip = camera->m_mode == eCameraProjMode::ePerspective ?
+		"Perspective (click for Orthographic)" : "Orthographic (click for Perspective)";
+
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("%s", camera_tip.c_str());
+	//-----------------------------------------------------------------------------------
+
+	//-- change camera control mode
+	std::string control_text = camera->m_controlMode == eCameraControlMode::eFreeLook ?
+		ICON_FA_CAMERA_RETRO " FreeLook" : ICON_FA_CAMERA_ROTATE "  Orbital";
+
+	float control_text_sx = ImGui::CalcTextSize(control_text.c_str()).x + 20.f;
+
+	btnPos.x = btnPos.x - control_text_sx - kMargin;
+	ImGui::SetCursorScreenPos(btnPos);
+	if (ImGui::Button(control_text.c_str(), ImVec2(control_text_sx, btnSize)))
+	{
+		camera->SetControlMode(
+			camera->m_controlMode == eCameraControlMode::eFreeLook ?
+			eCameraControlMode::eOrbital : eCameraControlMode::eFreeLook
+		);
+	}
+
+	if (camera->m_controlMode == eCameraControlMode::eFreeLook) {
+		camera_tip = "FreeLook camera mode (F5 for relaod)\n\n"
+			ICON_FA_CIRCLE_INFO "  Navigation:\n\n"
+			ICON_FA_UP_DOWN_LEFT_RIGHT "  W/S/A/D -> Move\n\n"
+			ICON_FA_ARROWS_UP_DOWN "  Space / Ctrl->Up / Down\n\n"
+			ICON_FA_ROTATE "  Middle MB->Look";
+	}
+	else {
+		camera_tip = "Orbital camera mode (F5 for relaod)\n\n"
+			ICON_FA_CIRCLE_INFO "  Navigation:\n\n"
+			ICON_FA_ROTATE "  Middle MB -> Rotate\n\n"
+			ICON_FA_ARROWS_UP_DOWN "  Scroll -> Depth\n\n"
+			ICON_FA_UP_DOWN_LEFT_RIGHT "  LShift + MMB -> Move target\n\n"
+			ICON_FA_CIRCLE_INFO "  LShift only -> Display target cube\n\n";
+	}
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("%s", camera_tip.c_str());
+	//-----------------------------------------------------------------------------------
 }
 
 //-------------------------------------------------------------------------
@@ -222,7 +301,7 @@ void CUIViewPort::DrawGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	if (!model || scene.m_GizmoMode == eGizmoMode::eSelect)
 		return;
 
-	ImGuizmo::SetOrthographic(camera->m_mode == eCameraProjMode::Orthographic);
+	ImGuizmo::SetOrthographic(camera->m_mode == eCameraProjMode::eOrthographic);
 	ImGuizmo::SetDrawlist();
 	ImGuizmo::SetRect(imageOriginScreen.x, imageOriginScreen.y, vpSize.x, vpSize.y);
 
@@ -310,6 +389,8 @@ void CUIViewPort::DrawViewGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 
 void CUIViewPort::RenderContent()
 {
+	UpdateInput();
+
 	CHW& hw = CHW::Get();
 	CRenderer& renderer = CRenderer::Get();
 	CRenderTarget* rt = renderer.GetMainRT();
@@ -320,12 +401,28 @@ void CUIViewPort::RenderContent()
 		if ((UINT)size.x != rt->m_Width || (UINT)size.y != rt->m_Height) {
 			rt->Create(hw.m_Device, (UINT)size.x, (UINT)size.y);
 			renderer.Resize((UINT)size.x, (UINT)size.y);
+
+			//-- why not
+			CScene::Get().Camera()->m_aspectRatio = size.x / size.y;
 		}
 	}
 
 	//-- capture the image's screen-space origin *before* drawing it, so
 	//-- every overlay below anchors to the same reference point.
 	ImVec2 imageOrigin = ImGui::GetCursorScreenPos();
+
+	//-- having orbital control mode -> draw debug box with target position
+	auto camera = CScene::Get().Camera();
+	if (camera && camera->m_LShitft) {
+		DirectX::XMFLOAT4 color(1.f, 1.f, 0.f, 1.f);
+
+		//-- same cube size
+		float cube_size = dxfloat3_dist_to(camera->GetPosition(), camera->GetTarget()) * 
+			tan(camera->m_fov / 2) * 0.05f;
+
+		renderer.DebugRenderer()->SetRenderPhase(eDebugPhase::ePhaseAfterScene);
+		renderer.DebugRenderer()->DrawCube(hw.m_Context, camera->m_target, cube_size, color);
+	}
 
 	renderer.Render();
 	if (rt->m_SRV)
@@ -349,3 +446,79 @@ void CUIViewPort::RenderContent()
 	if (size.x > 160.0f && size.y > 90.0f)
 		DrawStatsBadge(imageOrigin, size);
 }
+
+//----------------------------------------------------------------------------
+//-- Check Input for Camera and Viewport (trash but i`m lazy)
+//----------------------------------------------------------------------------
+void CUIViewPort::UpdateInput() {
+	CScene& scene = CScene::Get();
+	CCamera* camera = scene.Camera();
+
+	if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows)) {
+		camera->m_moveForward = false;
+		camera->m_moveBackward = false;
+		camera->m_moveLeft = false;
+		camera->m_moveRight = false;
+		camera->m_moveUp = false;
+		camera->m_moveDown = false;
+		camera->m_MouseMB = false;
+		camera->m_LShitft = false;
+		return;
+	}
+
+	//-- reload camera
+	if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
+		camera->SetControlMode(camera->m_controlMode);
+		return;
+	}
+
+	//-- zoom / speed
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.MouseWheel)
+		camera->OnMouseWheel((int)io.MouseWheel);
+
+	//-- camera rotation
+	if (io.MouseDelta.x || io.MouseDelta.y)
+		camera->OnMouseMove((int)io.MouseDelta.x, (int)io.MouseDelta.y);
+
+	//-- moving camera in free look mode
+	if (camera->m_controlMode == eCameraControlMode::eFreeLook)
+	{
+		if (camera->m_mode != eCameraProjMode::eOrthographic) {
+			if (ImGui::IsKeyPressed(ImGuiKey_W)) camera->m_moveForward = true;
+			else if (ImGui::IsKeyPressed(ImGuiKey_S)) camera->m_moveBackward = true;
+			else if (ImGui::IsKeyPressed(ImGuiKey_A)) camera->m_moveLeft = true;
+			else if (ImGui::IsKeyPressed(ImGuiKey_D)) camera->m_moveRight = true;
+			else if (ImGui::IsKeyPressed(ImGuiKey_Space)) camera->m_moveUp = true;
+			else if (ImGui::IsKeyPressed(ImGuiKey_LeftCtrl)) camera->m_moveDown = true;
+		}
+
+		if (ImGui::IsKeyReleased(ImGuiKey_W)) camera->m_moveForward = false;
+		else if (ImGui::IsKeyReleased(ImGuiKey_S)) camera->m_moveBackward = false;
+		else if (ImGui::IsKeyReleased(ImGuiKey_A)) camera->m_moveLeft = false;
+		else if (ImGui::IsKeyReleased(ImGuiKey_D)) camera->m_moveRight = false;
+		else if (ImGui::IsKeyReleased(ImGuiKey_Space)) camera->m_moveUp = false;
+		else if (ImGui::IsKeyReleased(ImGuiKey_LeftCtrl)) camera->m_moveDown = false;
+	}
+	else {
+		if (ImGui::IsKeyPressed(ImGuiKey_LeftShift)) camera->m_LShitft = true;
+		if (ImGui::IsKeyReleased(ImGuiKey_LeftShift)) camera->m_LShitft = false;
+	}
+
+	if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) camera->m_MouseMB = true;
+	if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle)) camera->m_MouseMB = false;
+
+	//-- gizmo mode
+	if (ImGui::IsKeyPressed(ImGuiKey_Q))
+		scene.m_GizmoMode = eGizmoMode::eSelect;
+
+	if (ImGui::IsKeyPressed(ImGuiKey_W))
+		scene.m_GizmoMode = eGizmoMode::eTranslate;
+
+	if (ImGui::IsKeyPressed(ImGuiKey_E))
+		scene.m_GizmoMode = eGizmoMode::eRotate;
+
+	if (ImGui::IsKeyPressed(ImGuiKey_R))
+		scene.m_GizmoMode = eGizmoMode::eScale;
+}
+//----------------------------------------------------------------------------

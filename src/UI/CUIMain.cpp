@@ -366,18 +366,18 @@ void CUIMain::Render()
 //-- Input events (TODO: maybe for m_Windows too?..)
 //-------------------------------------------------------------------------
 void CUIMain::OnKeyUp(WPARAM key) {
-    CScene::Get().Camera()->OnKeyUp(key);
+
 }
 
 void CUIMain::OnKeyDown(WPARAM key) {
-    CScene::Get().Camera()->OnKeyDown(key);
+
 }
 
 void CUIMain::OnMouseMove(int dx, int dy) {
-    CScene::Get().Camera()->OnMouseMove(dx, dy);
+
 }
 
 void CUIMain::OnMouseWheel(int delta) {
-    CScene::Get().Camera()->OnMouseWheel(delta);
+
 }
 //-------------------------------------------------------------------------

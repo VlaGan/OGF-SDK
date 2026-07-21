@@ -7,8 +7,13 @@
 #include <Windows.h>
 
 enum eCameraProjMode {
-	ePerspective = 0,
-    Orthographic
+    ePerspective = 0,
+    eOrthographic
+};
+
+enum eCameraControlMode {
+    eFreeLook = 0,
+    eOrbital
 };
 
 class CCamera {
@@ -17,32 +22,52 @@ public:
     void Update(float dt);
     void OnMouseMove(int dx, int dy);
     void OnMouseWheel(int delta);
-    void OnKeyDown(WPARAM key);
-    void OnKeyUp(WPARAM key);
 
     DirectX::XMMATRIX GetViewMatrix() const;
     DirectX::XMMATRIX GetProjectionMatrix(float aspectRatio) const;
     DirectX::XMFLOAT3 GetPosition() const { return m_position; }
+    DirectX::XMFLOAT3 GetTarget() const { return m_target; }
 
     void SetAspectRatio(float ar) { m_aspectRatio = ar; }
+    void SetCameraMode(eCameraProjMode mode) { m_mode = mode; }
+    void SetControlMode(eCameraControlMode mode);
 
-	void SetCameraMode(eCameraProjMode mode) { m_mode = mode; }
     float AspectRatio() { return m_aspectRatio; };
-	float OrthoSize() { return m_orthoSize; };
+    float OrthoSize() { return m_orthoSize; };
 
-    public:
-    eCameraProjMode m_mode{ eCameraProjMode::ePerspective };
-    float m_orthoSize{ 2.0f };
+    void SetTarget(const DirectX::XMFLOAT3& target) { m_target = target; }
 
+public:
+    //-- projection mode
+    eCameraProjMode m_mode; 
+
+    //-- camera control mode
+    eCameraControlMode m_controlMode;
+
+    //-- for eOrthographic projection
+    float m_orthoSize;
+
+    //-- position / target for orbital
     DirectX::XMFLOAT3 m_position;
+    DirectX::XMFLOAT3 m_target;
+
+    //-- orientation
     float m_yaw;
     float m_pitch;
 
+    //-- dist from target to position
+    float m_orbitDistance;
+
+    //-- moving speed for freelook
     float m_speed;
+
     float m_mouseSensitivity;
+
+    //-- fov / aspect
     float m_fov;
     float m_aspectRatio;
 
+    //-- moving camera for freelook
     bool m_moveForward;
     bool m_moveBackward;
     bool m_moveLeft;
@@ -50,7 +75,11 @@ public:
     bool m_moveUp;
     bool m_moveDown;
 
+    // for orbital
+    bool m_MouseMB;
+    bool m_LShitft;
 
-	float zNear;
-	float zFar;
+    //-- min / max z
+    float zNear;
+    float zFar;
 };

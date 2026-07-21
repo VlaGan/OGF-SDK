@@ -22,3 +22,11 @@ typedef uint64_t u64;
 
 static float deg2rad(float deg) { return deg * (DirectX::XM_PI / 180.f); }
 static float rad2deg(float rad) { return rad * (180.f / DirectX::XM_PI); }
+static float dxfloat3_dist_to(const DirectX::XMFLOAT3& v1, const DirectX::XMFLOAT3& v2)
+{
+    float dx = v2.x - v1.x;
+    float dy = v2.y - v1.y;
+    float dz = v2.z - v1.z;
+
+    return sqrtf(dx * dx + dy * dy + dz * dz);
+}

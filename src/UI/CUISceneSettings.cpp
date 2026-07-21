@@ -24,15 +24,8 @@ void CUISceneSettings::RenderContent()
     if (ImGui::CollapsingHeader(ICON_FA_CAMERA "  Camera", ImGuiTreeNodeFlags_None)) {
         CCamera* camera = CScene::Get().Camera();
 
-        std::string camera_mode = camera->m_mode ==
-            eCameraProjMode::ePerspective ? "Perspective" : "Orthogonal";
-
-        if (ImGui::Button(ICON_FA_ROTATE_RIGHT "  Camera mode:")) {
-            camera->m_mode = camera->m_mode ==
-                eCameraProjMode::ePerspective ? eCameraProjMode::Orthographic : eCameraProjMode::ePerspective;
-        }
-        ImGui::SameLine();
-        ImGui::Text(camera_mode.c_str());
+        ImGui::SliderFloat("Mouse sense", &camera->m_mouseSensitivity, 0.001f, 0.01f);
+        ImGui::SliderFloat("FOV", &camera->m_fov, 0.01f, 1.f);
 
         ImGui::InputFloat("zNear", &camera->zNear);
         ImGui::InputFloat("zFar", &camera->zFar);

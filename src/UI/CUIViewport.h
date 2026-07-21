@@ -24,6 +24,8 @@ public:
 
 	void RenderContent() override;
 
+	void UpdateInput();
+
 private:
 	void DrawToolbar(ImVec2 imageOriginScreen);
 	void DrawOverlaysButton(ImVec2 imageOriginScreen, float vpWidth);
