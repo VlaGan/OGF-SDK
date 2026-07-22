@@ -17,6 +17,31 @@
 
 #include "../Templates/ConstantBuffer.h"
 
+class CModel;
+
+//-- attach data
+struct CAttachData {
+    DirectX::XMFLOAT3 m_attachPos{};
+    DirectX::XMFLOAT3 m_attachRot{};
+    DirectX::XMFLOAT3 m_attachScale{ 1.f, 1.f, 1.f };
+    CModel* m_pParent{};
+
+    std::string m_ParentBone{};
+
+    //-- specific bone for attach to parent bone (default - root)
+    std::string m_ChildBone{};
+
+    bool valid() { return m_pParent != nullptr; }
+    void zero() {
+        m_attachPos = { 0.f, 0.f, 0.f };
+        m_attachRot = { 0.f, 0.f, 0.f };
+        m_attachScale = { 1.f, 1.f, 1.f };
+        m_pParent = nullptr;
+        m_ParentBone.clear();
+        m_ChildBone.clear();
+    }
+};
+
 
 class CModel {
 public:
@@ -53,6 +78,7 @@ public:
     DirectX::XMMATRIX XFORM() { return m_trans; }
 
     void UpdateTransform();
+    void UpdateTransformAttached(float dt, float animTime);
 
     void SetShaderOnMesh();
 public:
@@ -112,4 +138,7 @@ public:
     float m_CurrentTime{}; //seconds
 
     CConstantBuffer m_BoneBuffer;
+
+    //-- attach data
+    CAttachData m_AttachData;
 };

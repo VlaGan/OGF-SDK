@@ -233,7 +233,10 @@ void CRenderer::Render() {
     //-- update camera
     camera->Update(dt);
 
-	for (auto& model : scene.GetModels())
+    //-- multiply delta on scene time factor 
+    dt *= scene.m_fTimeFactor;
+
+    for (auto& model : scene.GetModels())
 		model->Update(dt);
 
     m_View = camera->GetViewMatrix();

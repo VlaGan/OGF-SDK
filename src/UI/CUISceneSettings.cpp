@@ -19,6 +19,9 @@ void CUISceneSettings::RenderContent()
         ImGui::Text(ICON_FA_PALETTE "  Background rt color:");
         ImGui::ColorPicker4("##Color", renderer.m_ClearColor, 0);
         ImGui::Separator();
+
+        CScene& scene = CScene::Get();
+        ImGui::SliderFloat("Time factor", &scene.m_fTimeFactor, 0.f, 5.f);
     }
 
     if (ImGui::CollapsingHeader(ICON_FA_CAMERA "  Camera", ImGuiTreeNodeFlags_None)) {

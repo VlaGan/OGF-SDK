@@ -77,8 +77,69 @@ void CUISelectedItemProp::RenderContent()
 		ImGui::InputFloat3("Rotation (rad)", (float*)&model->m_Rotation.x);
 		ImGui::InputFloat3("Scale", (float*)&model->m_Scale.x);
 		ImGui::Separator();
-	}
 
+		//-- Attaching models
+		const std::vector<CModel*>& models = scene.GetModels();
+
+		//-- hack if attach parent was deleted 
+		if (model->m_AttachData.valid()) {
+			bool reset{ true };
+			for (auto& m : models)
+				if (m == model->m_AttachData.m_pParent) {
+					reset = false;
+					break;
+				}
+
+			if (reset)
+				model->m_AttachData.zero();
+		}
+
+		ImGui::SeparatorText("ATTACH DATA");
+
+		ImGui::InputFloat3("Attach position", (float*)&model->m_AttachData.m_attachPos.x);
+		ImGui::InputFloat3("Attach rotation", (float*)&model->m_AttachData.m_attachRot.x);
+		ImGui::InputFloat3("Attach scale", (float*)&model->m_AttachData.m_attachScale.x);
+
+		if (ImGui::BeginCombo("Attach to##AttachCombo",
+			model->m_AttachData.m_pParent ?
+			model->m_AttachData.m_pParent->m_modelName.c_str() :
+			"No selected attach parent")) {
+
+			for (int i{}; i < models.size(); ++i) {
+				
+				//-- ignore selected model and models that attached to selected
+				if (model != models[i] && model[i].m_AttachData.m_pParent != model)
+				{
+					bool is_selected = model->m_AttachData.m_pParent == models[i];
+					if (ImGui::Selectable(models[i]->m_modelName.c_str(), is_selected)) {
+						model->m_AttachData.m_pParent = models[i];
+					}
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		if (model->m_AttachData.m_pParent) {
+			if (ImGui::BeginCombo("Attach to bone ##AttachComboBone",
+				!model->m_AttachData.m_ParentBone.empty() ?
+				model->m_AttachData.m_ParentBone.c_str() :
+				"No selected attach bone")) {
+
+				for (auto& bone : model->m_AttachData.m_pParent->m_Skeleton.m_vBones) {
+					bool is_selected = model->m_AttachData.m_ParentBone == bone.m_sBoneName;
+					if (ImGui::Selectable(bone.m_sBoneName.c_str(), is_selected)) {
+						model->m_AttachData.m_ParentBone = bone.m_sBoneName;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+		}
+		if (ImGui::Button("Detach"))
+			model->m_AttachData.zero();
+	}
 
 	// Meshes Section
 	if (ImGui::CollapsingHeader(ICON_FA_CUBES "  Meshes")) {
@@ -172,6 +233,12 @@ void CUISelectedItemProp::RenderContent()
 					if (ImGui::Selectable(model->m_vMotions[i].GetName().c_str(), is_selected)) {
 						model->SetMotion(&model->m_vMotions[i]);
 						current_motion_index = i;
+
+						//-- little hack for restart motions on attach 
+						// (im thinking about keyframe wnd like in blender)
+						for (auto& m : scene.GetModels())
+							m->m_CurrentTime = 0.f;
+
 					}
 					if (is_selected) {
 						ImGui::SetItemDefaultFocus();

@@ -530,22 +530,100 @@ void CModel::UpdateSkeleton(CBoneInstance* bone, const DirectX::XMMATRIX& parent
         UpdateSkeleton(child, bone->mGlobalTransform);
 }
 
+//-- Update transform if model attached to another model on scene
+//-- TODO: that works but looks wierd, need to reformat
+void CModel::UpdateTransformAttached(float dt, float animTime) {
+
+    m_AttachData.m_pParent->Update(dt); //-- not so cheap, but works 
+    m_AttachData.m_pParent->m_CurrentTime -= dt * m_AttachData.m_pParent->m_TicksPerSecond;
+
+    //-- attached. NOTE: this relies on the parent's Update() having
+    //-- already run this frame (so the parent bone's mGlobalTransform is
+    //-- current) - make sure attached models are updated *after* their
+    //-- parent. (fixed on top)
+    DirectX::XMMATRIX parentTransform = m_AttachData.m_pParent->XFORM();
+    bool haveParentBone = false;
+
+    if (m_AttachData.m_pParent->m_Skeleton.m_BoneCount && !m_AttachData.m_ParentBone.empty()) {
+        if (CBoneInstance* pParentBone = m_AttachData.m_pParent->m_Skeleton.GetBoneInstance(m_AttachData.m_ParentBone)) {
+            parentTransform = pParentBone->mGlobalTransform; //-- already includes parent's XFORM(), see UpdateSkeleton/TraverseHierarchy
+            haveParentBone = true;
+        }
+    }
+
+    DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(
+        m_AttachData.m_attachScale.x, m_AttachData.m_attachScale.y, m_AttachData.m_attachScale.z);
+    DirectX::XMMATRIX rotMat =
+        DirectX::XMMatrixRotationX(m_AttachData.m_attachRot.x) *
+        DirectX::XMMatrixRotationY(m_AttachData.m_attachRot.y) *
+        DirectX::XMMatrixRotationZ(m_AttachData.m_attachRot.z);
+    DirectX::XMMATRIX transMat = DirectX::XMMatrixTranslation(
+        m_AttachData.m_attachPos.x, m_AttachData.m_attachPos.y, m_AttachData.m_attachPos.z);
+    DirectX::XMMATRIX offsetMat = scaleMat * rotMat * transMat;
+
+    const std::string& childBoneName =
+        m_AttachData.m_ChildBone.empty() ? m_Skeleton.GetRootBone()->m_sBoneName : m_AttachData.m_ChildBone;
+    CBoneInstance* pChildBone = m_Skeleton.m_BoneCount ? m_Skeleton.GetBoneInstance(childBoneName) : nullptr;
+
+    if (haveParentBone && pChildBone) {
+        //-- bone-to-bone attach: figure out where OUR OWN attach bone sits
+        //-- in OUR OWN local space (root at identity - i.e. unaffected by
+        //-- m_trans, which is exactly what we're solving for), using the
+        //-- model's current pose. Then solve m_trans so that bone lands
+        //-- exactly on top of the parent's bone in world space. This is
+        //-- what cancels out any mismatch between this model's mesh
+        //-- origin and its own skeleton bind pose.
+
+        //-- VlaGan: little fix to sync anims (enable if needed)
+        /*if (m_pCurrentMotion && m_AttachData.m_pParent->m_pCurrentMotion) {
+
+            float d1 = m_pCurrentMotion->Duration();
+            float d2 = m_AttachData.m_pParent->m_pCurrentMotion->Duration();
+
+            if (d1 < d2) {
+                m_CurrentTime = m_AttachData.m_pParent->m_CurrentTime * d1 / d2;
+                animTime = fmodf(m_CurrentTime, m_AnimationDuration);
+            }
+        }*/
+
+        if (scene && scene->HasAnimations() && m_pCurrentMotion)
+            TraverseHierarchy(animTime, scene->mRootNode->FindNode(rootName().c_str()), DirectX::XMMatrixIdentity());
+        else if (m_pCurrentMotion)
+            TraverseSkeleton(animTime, m_Skeleton.GetRootBone(), DirectX::XMMatrixIdentity());
+        else
+            UpdateSkeleton(m_Skeleton.GetRootBone(), DirectX::XMMatrixIdentity());
+
+        DirectX::XMMATRIX childBoneLocal = pChildBone->mGlobalTransform;
+        m_trans = DirectX::XMMatrixInverse(nullptr, childBoneLocal) * offsetMat * parentTransform;
+    }
+    else {
+        //-- fallback: no matching bone pair found - just hang the whole
+        //-- model off the parent bone/world transform with the manual offset
+        m_trans = offsetMat * parentTransform;
+    }
+}
+
 //-- update model skeleton and transform
 void CModel::Update(float dt) {
 
-    UpdateTransform();
+    //-- restart anim
+    if (m_AnimationDuration <= m_CurrentTime)
+        m_CurrentTime = 0.f;
 
-    if(m_Skeleton.m_BoneCount) 
+    m_CurrentTime += dt * m_TicksPerSecond; // seconds to ticks
+    float animTime = fmodf(m_CurrentTime, m_AnimationDuration);
+
+    if (!m_AttachData.valid())
+        UpdateTransform();
+    else
+        UpdateTransformAttached(dt, animTime);
+
+    //-- this (re)computes the skeleton using the now-final m_trans, so the
+    //-- pre-pass above (if any) gets overwritten with the correct result
+    if (m_Skeleton.m_BoneCount)
         UpdateSkeleton(m_Skeleton.GetRootBone(), XFORM());
 
     if (m_pCurrentMotion) { //-- else for simple visual rendering need to set not skinning shader
-
-        //-- restart anim 
-        if (m_AnimationDuration <= m_CurrentTime)
-            m_CurrentTime = 0.f;
-
-        m_CurrentTime += dt * m_TicksPerSecond; // seconds to ticks
-        float animTime = fmodf(m_CurrentTime, m_AnimationDuration);
 
         if (scene && scene->HasAnimations())
         {

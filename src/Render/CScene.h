@@ -50,6 +50,9 @@ public:
 
 	CModel* m_SelectedModel{};
 
+	//-- here will be global time factor
+	float m_fTimeFactor{ 1.f };
+
 private:
 	std::vector<CModel*> m_Models;
 	

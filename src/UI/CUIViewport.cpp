@@ -312,12 +312,37 @@ void CUIViewPort::DrawGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	DirectX::XMStoreFloat4x4(&viewF, camera->GetViewMatrix());
 	DirectX::XMStoreFloat4x4(&projF, camera->GetProjectionMatrix(vpSize.x / vpSize.y));
 
-	float t[3] = { model->m_Position.x, model->m_Position.y, model->m_Position.z };
-	float r[3] = {
-		DirectX::XMConvertToDegrees(model->m_Rotation.x),
-		DirectX::XMConvertToDegrees(model->m_Rotation.y),
-		DirectX::XMConvertToDegrees(model->m_Rotation.z) };
-	float s[3] = { model->m_Scale.x, model->m_Scale.y, model->m_Scale.z };
+	//-- TODO: display from attached parent bone as 0,0,0 (not 0,0,0 coords)
+	float t[3];
+	float r[3];
+	float s[3];
+
+	if (model->m_AttachData.m_pParent) {
+		t[0] = model->m_AttachData.m_attachPos.x;
+		t[1] = model->m_AttachData.m_attachPos.y;
+		t[2] = model->m_AttachData.m_attachPos.z;
+
+		r[0] = DirectX::XMConvertToDegrees(model->m_AttachData.m_attachRot.x);
+		r[1] = DirectX::XMConvertToDegrees(model->m_AttachData.m_attachRot.y);
+		r[2] = DirectX::XMConvertToDegrees(model->m_AttachData.m_attachRot.z);
+
+		s[0] = model->m_AttachData.m_attachScale.x;
+		s[1] = model->m_AttachData.m_attachScale.y;
+		s[2] = model->m_AttachData.m_attachScale.z;
+	}
+	else {
+		t[0] = model->m_Position.x;
+		t[1] = model->m_Position.y;
+		t[2] = model->m_Position.z;
+
+		r[0] = DirectX::XMConvertToDegrees(model->m_Rotation.x);
+		r[1] = DirectX::XMConvertToDegrees(model->m_Rotation.y);
+		r[2] = DirectX::XMConvertToDegrees(model->m_Rotation.z);
+
+		s[0] = model->m_Scale.x;
+		s[1] = model->m_Scale.y;
+		s[2] = model->m_Scale.z;
+	}
 
 	float matrix[16];
 	ImGuizmo::RecomposeMatrixFromComponents(t, r, s, matrix);
@@ -334,14 +359,24 @@ void CUIViewPort::DrawGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	if (ImGuizmo::Manipulate((float*)&viewF, (float*)&projF, op, gmode, matrix))
 	{
 		ImGuizmo::DecomposeMatrixToComponents(matrix, t, r, s);
-
-		model->m_Position = { t[0], t[1], t[2] };
-		model->m_Rotation = {
-			DirectX::XMConvertToRadians(r[0]),
-			DirectX::XMConvertToRadians(r[1]),
-			DirectX::XMConvertToRadians(r[2]) };
-		model->m_Scale = { s[0], s[1], s[2] };
-		model->UpdateTransform();
+		
+		if (model->m_AttachData.m_pParent) {
+			model->m_AttachData.m_attachPos = { t[0], t[1], t[2] };
+			model->m_AttachData.m_attachRot = {
+				DirectX::XMConvertToRadians(r[0]),
+				DirectX::XMConvertToRadians(r[1]),
+				DirectX::XMConvertToRadians(r[2]) };
+			model->m_AttachData.m_attachScale = { s[0], s[1], s[2] };
+		}
+		else {
+			model->m_Position = { t[0], t[1], t[2] };
+			model->m_Rotation = {
+				DirectX::XMConvertToRadians(r[0]),
+				DirectX::XMConvertToRadians(r[1]),
+				DirectX::XMConvertToRadians(r[2]) };
+			model->m_Scale = { s[0], s[1], s[2] };
+			model->UpdateTransform();
+		}
 	}
 }
 
