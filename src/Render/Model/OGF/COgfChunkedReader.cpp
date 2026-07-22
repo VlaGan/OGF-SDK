@@ -111,6 +111,20 @@ std::string COgfChunkedReader::r_stringZ()
     return s;
 }
 
+//-- specially for motion marks
+std::string COgfChunkedReader::r_stringA()
+{
+    std::string s;
+    while (m_pos < m_size)
+    {
+        const char c = static_cast<char>(m_data[m_pos++]);
+        if (c == 0x0A)
+            break;
+        s.push_back(c);
+    }
+    return s;
+}
+
 void COgfChunkedReader::r(void* dst, size_t bytes)
 {
     if (m_pos + bytes <= m_size)

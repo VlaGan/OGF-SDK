@@ -119,6 +119,25 @@ enum EOgfChunkV3 : ogf_u32
 //-- MOTIONS chunk ids across SDK builds; try these as a fallback if the
 //-- "canonical" OGF_S_SMPARAMS(15)/OGF_S_MOTIONS(14) aren't found.
 constexpr ogf_u32 OGF3_S_SMPARAMS_NEW = 20; // build 1472-1865
+
+//-- per motion-definition behavior flags, stored as the u32 read right before
+//-- CMotionDef in OGF_S_SMPARAMS - byte-exact with OGSR-Engine's xr_3da/motion.h
+//-- ESMFlags enum. esmUseFootSteps/esmRootMover/esmSyncPart are the ones most
+//-- relevant to "trigger something during this animation" style tricks.
+enum EOgfMotionDefFlags : ogf_u16
+{
+    OGF_ESM_FX = 1 << 0, // one-shot effect motion (vs. a looping cycle)
+    OGF_ESM_STOP_AT_END = 1 << 1, // don't loop back to frame 0 when it finishes
+    OGF_ESM_NO_MIX = 1 << 2, // don't blend with other motions while playing
+    OGF_ESM_SYNC_PART = 1 << 3, // bone_or_part below is a partition id, not a bone id
+    OGF_ESM_USE_FOOT_STEPS = 1 << 4, // sync footstep sounds/marks to this motion
+    OGF_ESM_ROOT_MOVER = 1 << 5, // motion drives the root bone's world position
+    OGF_ESM_IDLE = 1 << 6,
+    OGF_ESM_USE_WEAPON_BONE = 1 << 7,
+};
+
+constexpr ogf_u16 OGF_SMPARAMS_VERSION = 4; // xrOGF_SMParamsVersion - motion_marks only exist at this version or newer
+
 constexpr ogf_u32 OGF3_S_MOTIONS_NEW = 26; // build 1616-1865
 
 //----------------------------------------------------------------------------

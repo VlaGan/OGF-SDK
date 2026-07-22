@@ -165,6 +165,50 @@ struct SOgfMeshDef
     bool isSkinned = false; // true if vertices carry valid boneIDs/weights
 };
 
+//-- a bone-group ("partition") used for motion blending/LOD - from
+//-- OGF_S_SMPARAMS. Byte-exact with OGSR-Engine's CPartDef (xr_3da/SkeletonMotions.h).
+struct SOgfPartition
+{
+    std::string name;
+    std::vector<std::string> boneNames; // bones belonging to this partition, in file order
+};
+
+//-- a named marker window within a motion's timeline (e.g. footstep sync
+//-- points) - byte-exact with X-Ray's motion_marks (xr_3da/SkeletonMotions.h).
+//-- Only present when the parent .omf's OGF_S_SMPARAMS is version >= 4
+//-- (OGF_SMPARAMS_VERSION) - older files simply never have any.
+struct SOgfMotionMark
+{
+    std::string name;
+    std::vector<DirectX::XMFLOAT2> intervals; // (start, end) time pairs, in frames
+};
+
+//-- blend/behavior metadata for one motion - byte-exact with X-Ray's
+//-- CMotionDef (xr_3da/SkeletonMotions.h/.cpp). This is separate from the
+//-- CMotion keyframe data itself: CMotionDef controls HOW a motion is
+//-- triggered/blended/looped (the `flags` bitmask - see EOgfMotionDefFlags in
+//-- ogf_format.h), not what it looks like frame-by-frame.
+//--
+//-- NOTE: `speed`/`power`/`accrue`/`falloff` are stored here exactly as read
+//-- from the file. The live engine additionally applies a runtime-only
+//-- adjustment on top (multiplies accrue/falloff by 1.5, and clamps falloff
+//-- against accrue for non-FX motions) purely for blending behavior - that
+//-- adjustment is NOT applied here, so these values round-trip byte-exact to
+//-- a future writer, but treat them as illustrative rather than the exact
+//-- number the game would compute at runtime if you need blending fidelity.
+struct SOgfMotionDef
+{
+    std::string name; // the "definition" name (what game/AI scripts refer to) - may differ from the CMotion's own embedded name
+    uint16_t flags = 0; // EOgfMotionDefFlags bitmask
+    uint16_t boneOrPart = 0; // bone id, or partition id if flags & OGF_ESM_SYNC_PART
+    uint16_t motionIndex = 0; // index into this .omf's motion list
+    float speed = 0.f;
+    float power = 0.f;
+    float accrue = 0.f;
+    float falloff = 0.f;
+    std::vector<SOgfMotionMark> marks; // empty unless the source SMPARAMS is version >= 4
+};
+
 //-- a fully parsed .ogf file
 struct SOgfModel
 {
@@ -187,6 +231,14 @@ struct SOgfModel
     //-- exact shape CModel::m_vMotions expects, ready to hand over as-is
     std::vector<CMotion> motions;
 
+    //-- OGF_S_SMPARAMS metadata, accumulated across every loaded .omf (a
+    //-- single .ogf can reference several). `partitions` groups bones for
+    //-- blending/LOD purposes; `motionDefs` is the per-motion blend/trigger
+    //-- behavior (speed/power/accrue/falloff/flags/marks) - see SOgfMotionDef
+    //-- above for why this is kept separate from the CMotion keyframe data.
+    std::vector<SOgfPartition> partitions;
+    std::vector<SOgfMotionDef> motionDefs;
+
     //-- OGF_S_USERDATA: an arbitrary script/config text blob some models
     //-- carry (e.g. attachment point definitions for weapons). Empty if absent.
     std::string userData;
@@ -198,4 +250,8 @@ struct SOgfModel
     //-- this model's LOD replacement, e.g. "smart_terrains\lod\some_lod".
     //-- Empty if the model has no separate LOD variant.
     std::string lodPath;
+
+    //-- Broken gunslinger types detection
+    bool brokenTypeOMF{};
+    bool brokenTypeOGF{};
 };

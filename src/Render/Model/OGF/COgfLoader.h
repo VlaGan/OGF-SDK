@@ -64,9 +64,10 @@ private:
     static void LoadDescription(COgfChunkedReader& r, ogf_u8 formatVersion, SOgfModel& out);
     static void LoadLod(COgfChunkedReader& r, ogf_u8 formatVersion, SOgfModel& out);
 
-    //-- shared by embedded (rare) and external .omf motion data:
-    //-- parses OGF_S_SMPARAMS (only for its bone-name table) + OGF_S_MOTIONS
-    //-- from `root` and appends decoded CMotion objects to `outMotions`.
+    //-- shared by embedded (rare) and external .omf motion data: parses
+    //-- OGF_S_SMPARAMS (bone-slot table, partitions, and per-motion blend/
+    //-- trigger metadata) + OGF_S_MOTIONS (the actual keyframes) from `root`
+    //-- and appends everything into `out` (motions/partitions/motionDefs).
     //-- `logIfMissing=false` silences the "no SMPARAMS/MOTIONS chunk" messages
     //-- for speculative calls where absence is the normal case, not an error.
     //-- `formatVersionHint`: -1 (default) = unknown source (a standalone .omf
@@ -78,6 +79,6 @@ private:
     //-- id used by format_version 4, and blindly trying it against a v4 file
     //-- misreads OGF_S_DESC's text as SMPARAMS binary data (garbage bone
     //-- counts/slots -> a multi-gigabyte vector resize -> std::bad_alloc).
-    static bool LoadSMParamsAndMotions(COgfChunkedReader& root, std::vector<CMotion>& outMotions, const std::string& debugName, bool logIfMissing = true, int formatVersionHint = -1);
-    static bool LoadMotionsFile(const std::string& path, std::vector<CMotion>& outMotions);
+    static bool LoadSMParamsAndMotions(COgfChunkedReader& root, SOgfModel& out, const std::string& debugName, bool logIfMissing = true, int formatVersionHint = -1);
+    static bool LoadMotionsFile(const std::string& path, SOgfModel& out);
 };

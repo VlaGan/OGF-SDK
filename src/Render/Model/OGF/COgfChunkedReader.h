@@ -41,6 +41,7 @@ public:
     void r_fvector2(float out[2]);
     void r_fvector3(float out[3]);
     std::string r_stringZ();
+    std::string r_stringA();
     void r(void* dst, size_t bytes);
     void skip(size_t bytes);
 
