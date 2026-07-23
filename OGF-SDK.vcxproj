@@ -151,9 +151,11 @@
     <ClInclude Include="src\Render\Model\CMotion.h" />
     <ClInclude Include="src\Render\Model\CSkeleton.h" />
     <ClInclude Include="src\Render\Model\OGF\COgfChunkedReader.h" />
+    <ClInclude Include="src\Render\Model\OGF\COgfChunkWriter.h" />
     <ClInclude Include="src\Render\Model\OGF\COgfLoader.h" />
     <ClInclude Include="src\Render\Model\OGF\COgfLzHuf.h" />
     <ClInclude Include="src\Render\Model\OGF\COgfModel.h" />
+    <ClInclude Include="src\Render\Model\OGF\COgfWriter.h" />
     <ClInclude Include="src\Render\Model\OGF\ogf_format.h" />
     <ClInclude Include="src\Render\Templates\ConstantBuffer.h" />
     <ClInclude Include="src\Render\Templates\CShader.h" />
@@ -196,8 +198,10 @@
     <ClCompile Include="src\Render\Model\CMotion.cpp" />
     <ClCompile Include="src\Render\Model\CSkeleton.cpp" />
     <ClCompile Include="src\Render\Model\OGF\COgfChunkedReader.cpp" />
+    <ClCompile Include="src\Render\Model\OGF\COgfChunkWriter.cpp" />
     <ClCompile Include="src\Render\Model\OGF\COgfLoader.cpp" />
     <ClCompile Include="src\Render\Model\OGF\COgfLzHuf.cpp" />
+    <ClCompile Include="src\Render\Model\OGF\COgfWriter.cpp" />
     <ClCompile Include="src\Render\Templates\ConstantBuffer.cpp" />
     <ClCompile Include="src\Render\Templates\CShader.cpp" />
     <ClCompile Include="src\Render\Templates\CTexture.cpp" />

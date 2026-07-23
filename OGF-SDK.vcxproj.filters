@@ -43,6 +43,12 @@
     <Filter Include="ImGui\ImGuizmo">
       <UniqueIdentifier>{e8135c9b-1816-426b-b01a-8fd919e0f857}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Render\Model\OGF\Reader">
+      <UniqueIdentifier>{702be6b8-52de-4341-8bd0-e55e28d60996}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Render\Model\OGF\Writer">
+      <UniqueIdentifier>{7ce63005-af9d-46a2-969b-d3a7db4fac2b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\OGF_SDK.h">
@@ -126,19 +132,10 @@
     <ClInclude Include="src\UI\CUISelectedItem.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Render\Model\OGF\COgfChunkedReader.h">
-      <Filter>Render\Model\OGF</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Render\Model\OGF\COgfLoader.h">
-      <Filter>Render\Model\OGF</Filter>
-    </ClInclude>
     <ClInclude Include="src\Render\Model\OGF\COgfModel.h">
       <Filter>Render\Model\OGF</Filter>
     </ClInclude>
     <ClInclude Include="src\Render\Model\OGF\ogf_format.h">
-      <Filter>Render\Model\OGF</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Render\Model\OGF\COgfLzHuf.h">
       <Filter>Render\Model\OGF</Filter>
     </ClInclude>
     <ClInclude Include="src\Core\CSettings.h">
@@ -149,6 +146,21 @@
     </ClInclude>
     <ClInclude Include="src\Render\Templates\CTexture.h">
       <Filter>Render\Templates</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\OGF\COgfChunkedReader.h">
+      <Filter>Render\Model\OGF\Reader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\OGF\COgfLoader.h">
+      <Filter>Render\Model\OGF\Reader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\OGF\COgfLzHuf.h">
+      <Filter>Render\Model\OGF\Reader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\OGF\COgfChunkWriter.h">
+      <Filter>Render\Model\OGF\Writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\OGF\COgfWriter.h">
+      <Filter>Render\Model\OGF\Writer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -245,17 +257,8 @@
     <ClCompile Include="src\UI\CUISelectedItem.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Render\Model\OGF\COgfChunkedReader.cpp">
-      <Filter>Render\Model\OGF</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Render\Model\OGF\COgfLoader.cpp">
-      <Filter>Render\Model\OGF</Filter>
-    </ClCompile>
     <ClCompile Include="3rd_party\ImGuizmo\ImGuizmo.cpp">
       <Filter>ImGui\ImGuizmo</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Render\Model\OGF\COgfLzHuf.cpp">
-      <Filter>Render\Model\OGF</Filter>
     </ClCompile>
     <ClCompile Include="src\Core\CFileDialog.cpp">
       <Filter>Core</Filter>
@@ -265,6 +268,21 @@
     </ClCompile>
     <ClCompile Include="src\Core\CSettings.cpp">
       <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\OGF\COgfChunkedReader.cpp">
+      <Filter>Render\Model\OGF\Reader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\OGF\COgfLoader.cpp">
+      <Filter>Render\Model\OGF\Reader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\OGF\COgfLzHuf.cpp">
+      <Filter>Render\Model\OGF\Reader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\OGF\COgfChunkWriter.cpp">
+      <Filter>Render\Model\OGF\Writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\OGF\COgfWriter.cpp">
+      <Filter>Render\Model\OGF\Writer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
