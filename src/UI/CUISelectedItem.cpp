@@ -108,7 +108,7 @@ void CUISelectedItemProp::RenderContent()
 			for (int i{}; i < models.size(); ++i) {
 				
 				//-- ignore selected model and models that attached to selected
-				if (model != models[i] && model[i].m_AttachData.m_pParent != model)
+				if (model != models[i] && models[i]->m_AttachData.m_pParent != model)
 				{
 					bool is_selected = model->m_AttachData.m_pParent == models[i];
 					if (ImGui::Selectable(models[i]->m_modelName.c_str(), is_selected)) {
