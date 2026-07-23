@@ -36,6 +36,7 @@ public:
     void Render(ID3D11DeviceContext* context);
     void RenderSM(ID3D11DeviceContext* context);
     void RenderGBuffer(ID3D11DeviceContext* context);
+    void RenderOutline(ID3D11DeviceContext* context);
 
     void Release();
 
@@ -71,6 +72,7 @@ public:
     std::shared_ptr<CShader> m_Shader;
     std::shared_ptr<CShader> m_ShaderSM;
     std::shared_ptr<CShader> m_ShaderGBuffer;
+    std::shared_ptr<CShader> m_ShaderOutline;
 
     //-- Textures
     CTexture m_Texture;

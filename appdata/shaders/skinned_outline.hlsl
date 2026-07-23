@@ -51,7 +51,6 @@ PS_INPUT VSMain(VS_INPUT input)
 
     skinnedNorm = normalize(skinnedNorm);
 
-    // Зсув по нормалі (в world space)
     float3 worldPos = mul(skinnedPos, world).xyz;
     float3 worldNormal = mul(skinnedNorm, (float3x3) world);
     worldPos += worldNormal * thickness;

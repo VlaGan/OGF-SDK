@@ -695,4 +695,30 @@ void CModel::RenderShadowMap(ID3D11DeviceContext* context) {
     for (auto& mesh : m_Meshes) 
         mesh.RenderSM(context);
 }
+
+//-- Blender-style selection -> inverted-hull outline
+void CModel::RenderOutline(ID3D11DeviceContext* context, float thickness, DirectX::XMFLOAT3 color)
+{
+    CRenderer* Render = &CRenderer::Get();
+
+    MatrixBuffer matrices;
+    matrices.world = XMMatrixTranspose(m_trans);
+    matrices.view = XMMatrixTranspose(Render->m_View);
+    matrices.proj = XMMatrixTranspose(Render->m_Projection);
+    matrices.lightVP = XMMatrixTranspose(Render->m_LightViewProj);
+
+    Render->m_ConstantBuffer.Update(context, 0, nullptr, &matrices, 0, 0);
+    Render->m_ConstantBuffer.VSSet(context, 0);
+
+    if (m_Skeleton.m_BoneCount)
+        UpdateBones(context);
+
+    OutlineCB outlineData{ thickness, color };
+    Render->m_OutlineBuffer.Update(context, 0, nullptr, &outlineData, 0, 0);
+    Render->m_OutlineBuffer.VSSet(context, 3);
+    Render->m_OutlineBuffer.PSSet(context, 3);
+
+    for (auto& mesh : m_Meshes)
+        mesh.RenderOutline(context);
+}
 //----------------------------------------------------------------------------

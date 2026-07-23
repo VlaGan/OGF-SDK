@@ -1,4 +1,4 @@
-//----------------------------------------------------------------------------
+п»ї//----------------------------------------------------------------------------
 //-- _render_structs.h
 //-- VlaGan: vector implementation
 //----------------------------------------------------------------------------
@@ -56,6 +56,11 @@ struct SSAO_CB {
 
 struct SSAO_Blur {
     DirectX::XMFLOAT2 invTexSize; // (1.0 / width, 1.0 / height)
-    float  aoPower;    // наскільки сильно множити AO (0.0...1.0)
-    float  aoIntensity; // інтенсивність AO (0.0...1.0)
+    float  aoPower;    // AO power (0.0...1.0)
+    float  aoIntensity; // AO intensity (0.0...1.0)
+};
+
+struct OutlineCB {
+    float thickness;
+    DirectX::XMFLOAT3 outlineColor;
 };

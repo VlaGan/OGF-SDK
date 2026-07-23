@@ -29,6 +29,7 @@ void CMesh::Release() {
     m_Shader.reset();
     m_ShaderSM.reset();
     m_ShaderGBuffer.reset();
+    m_ShaderOutline.reset();
 
     m_Texture.Release();
     RELEASE(m_Sampler);
@@ -54,6 +55,7 @@ CMesh::CMesh(CMesh&& other) noexcept {
     m_Shader = std::move(other.m_Shader);
     m_ShaderSM = std::move(other.m_ShaderSM);
     m_ShaderGBuffer = std::move(other.m_ShaderGBuffer);
+    m_ShaderOutline = std::move(other.m_ShaderOutline);
 
     m_Texture = std::move(other.m_Texture);
 }
@@ -81,6 +83,8 @@ CMesh& CMesh::operator=(CMesh&& other) noexcept {
         m_Shader = std::move(other.m_Shader);
         m_ShaderSM = std::move(other.m_ShaderSM);
         m_ShaderGBuffer = std::move(other.m_ShaderGBuffer);
+        m_ShaderOutline = std::move(other.m_ShaderOutline);
+
         m_Texture = std::move(other.m_Texture);
     }
     return *this;
@@ -184,6 +188,7 @@ void CMesh::CreateDefaultShaders(ID3D11Device* device) {
     m_Shader = CShaderContainer::Get().GetOrLoad(device, L"appdata/shaders/skinned.hlsl", "VSMain", "PSMain", layout, ARRAYSIZE(layout));
     m_ShaderSM = CShaderContainer::Get().GetOrLoad(device, L"appdata/shaders/skinned_shadow_map.hlsl", "VSMain", "PSMain", layout, ARRAYSIZE(layout));
     m_ShaderGBuffer = CShaderContainer::Get().GetOrLoad(device, L"appdata/shaders/GBuffer.hlsl", "VSMain", "PSMain", layout, ARRAYSIZE(layout));
+    m_ShaderOutline = CShaderContainer::Get().GetOrLoad(device, L"appdata/shaders/skinned_outline.hlsl", "VSMain", "PSMain", layout, ARRAYSIZE(layout));
 }
 
 bool CMesh::LoadTextureResource(ID3D11Device* device, const std::string& texture_name) {
@@ -312,6 +317,19 @@ void CMesh::RenderSM(ID3D11DeviceContext* context) {
 //-- render mesh gbuffer
 void CMesh::RenderGBuffer(ID3D11DeviceContext* context) {
     m_ShaderGBuffer.get()->Bind(context);
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
+    context->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);
+    context->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->DrawIndexed(m_IndexCount, 0, 0);
+}
+
+//-- Blender-style selection outline (inverted-hull pass, no texture needed)
+void CMesh::RenderOutline(ID3D11DeviceContext* context) {
+    m_ShaderOutline.get()->Bind(context);
+
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
     context->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);

@@ -59,6 +59,7 @@ public:
 
     void Render(ID3D11DeviceContext* context, bool transparent = false);
     void RenderShadowMap(ID3D11DeviceContext* context);
+    void RenderOutline(ID3D11DeviceContext* context, float thickness, DirectX::XMFLOAT3 color);
 
     void UpdateBones(ID3D11DeviceContext* context);
 

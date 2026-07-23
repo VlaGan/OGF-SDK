@@ -35,6 +35,7 @@ public:
 
 	CConstantBuffer m_ConstantBuffer;
 	CConstantBuffer m_LightBuffer;
+	CConstantBuffer m_OutlineBuffer;
 
 
 	DirectX::XMMATRIX m_View;
@@ -62,6 +63,10 @@ private:
 	ID3D11DepthStencilState* m_DepthStencilState{};
 	ID3D11DepthStencilState* m_DepthStencilTransparent{};
 	ID3D11BlendState* m_AlphaBlendState{};
+
+	//-- inverted hull outline
+	ID3D11RasterizerState* m_RasterStateOutline{};
+	ID3D11DepthStencilState* m_DepthStencilOutline{};
 
 	CRenderTarget m_mnRT;
 };

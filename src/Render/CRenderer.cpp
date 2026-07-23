@@ -39,6 +39,9 @@ CRenderer::~CRenderer() {
     RELEASE(m_DepthStencilState);
     RELEASE(m_DepthStencilTransparent);
     RELEASE(m_AlphaBlendState);
+
+    RELEASE(m_RasterStateOutline);
+    RELEASE(m_DepthStencilOutline);
 }
 
 void CRenderer::Resize(UINT dwW, UINT dwH) {
@@ -83,6 +86,7 @@ bool CRenderer::Init(UINT dwW, UINT dwH) {
 
 	m_mnRT.Create(hw.m_Device, dwW, dwH, DXGI_FORMAT_R8G8B8A8_UNORM);
     m_ConstantBuffer.Create(hw.m_Device, sizeof(MatrixBuffer));
+    m_OutlineBuffer.Create(hw.m_Device, sizeof(OutlineCB));
 
     //-- Depth buffeer
     D3D11_TEXTURE2D_DESC depthDesc = {};
@@ -129,6 +133,11 @@ bool CRenderer::Init(UINT dwW, UINT dwH) {
     rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
     hw.m_Device->CreateRasterizerState(&rasterDesc, &m_RasterStateWireframe);
 
+    //-- rasterizer for inverted-hull outline 
+    rasterDesc.FillMode = D3D11_FILL_SOLID;
+    rasterDesc.CullMode = D3D11_CULL_FRONT;
+    hw.m_Device->CreateRasterizerState(&rasterDesc, &m_RasterStateOutline);
+
 
     D3D11_DEPTH_STENCIL_DESC dsDesc = {};
     dsDesc.DepthEnable = true;
@@ -137,6 +146,11 @@ bool CRenderer::Init(UINT dwW, UINT dwH) {
 
     hr = hw.m_Device->CreateDepthStencilState(&dsDesc, &m_DepthStencilState);
     if (FAILED(hr)) return false;
+
+    //-- inverted hull outline depth stencil
+    dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    dsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+    hw.m_Device->CreateDepthStencilState(&dsDesc, &m_DepthStencilOutline);
 
     //-- transparent textures
     D3D11_DEPTH_STENCIL_DESC transparentDesc = {};
@@ -246,7 +260,7 @@ void CRenderer::Render() {
 	//-- Lets draw to main render target
 	hw.m_Context->OMSetRenderTargets(1, &m_mnRT.m_RTV, m_DepthStencilView);
 	hw.m_Context->ClearRenderTargetView(m_mnRT.m_RTV, m_ClearColor);
-    hw.m_Context->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+    hw.m_Context->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     //-- set rasterizer state to disable backface culling (vroid models shit)
 	if (scene.m_bWireframe)
@@ -280,9 +294,24 @@ void CRenderer::Render() {
     for (auto& model : scene.GetModels())
         model->Render(hw.m_Context, true);
 
-    hw.m_Context->OMSetDepthStencilState(nullptr, 1);
-    hw.m_Context->OMSetBlendState(nullptr, 0, 0xffffffff);
+    //-- Blender-style selection outline for the currently selected model
+    if (scene.m_SelectedModel)
+    {
+        static const DirectX::XMFLOAT3 kOutlineColor(1.0f, 0.55f, 0.0f); // orange
+        static const float kOutlineThickness = 0.0035f;
 
+        hw.m_Context->RSSetState(m_RasterStateOutline);
+        hw.m_Context->OMSetDepthStencilState(m_DepthStencilOutline, 1);
+        hw.m_Context->OMSetBlendState(nullptr, 0, 0xffffffff);
+
+        scene.m_SelectedModel->RenderOutline(hw.m_Context, kOutlineThickness, kOutlineColor);
+
+        //-- restore normal states
+        hw.m_Context->RSSetState(scene.m_bWireframe ? m_RasterStateWireframe : m_RasterState);
+
+        hw.m_Context->OMSetDepthStencilState(nullptr, 1);
+        hw.m_Context->OMSetBlendState(nullptr, 0, 0xffffffff);
+    }
 
     m_debugRenderer.SetRenderPhase(ePhaseAfterScene);
     if (scene.m_bDrawSkeleton)
@@ -290,12 +319,4 @@ void CRenderer::Render() {
         if(model->m_Skeleton.m_BoneCount)
             DebugDrawSkeleton(hw.m_Context, m_debugRenderer, model->m_Skeleton.GetRootBone()); //-- Skeleton debug
     m_debugRenderer.Render(hw.m_Context, m_ViewProj, true);
-
-    /*
-    m_debugRenderer.SetRenderPhase(ePhaseAfterScene);
-	for (auto& model : scene.GetModels())
-		if (model->m_Skeleton.m_BoneCount)
-        m_debugRenderer.DrawBoneAxis(hw.m_Context, *model->m_Skeleton.GetRootBone(), 0.5f);
-
-    m_debugRenderer.Render(hw.m_Context, m_ViewProj, true);*/
 }
