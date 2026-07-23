@@ -30,6 +30,7 @@ struct PS_INPUT
 {
     float4 pos : SV_POSITION;
 };
+
 PS_INPUT VSMain(VS_INPUT input)
 {
     PS_INPUT output;
@@ -51,9 +52,8 @@ PS_INPUT VSMain(VS_INPUT input)
 
     skinnedNorm = normalize(skinnedNorm);
 
-    float3 worldPos = mul(skinnedPos, world).xyz;
-    float3 worldNormal = mul(skinnedNorm, (float3x3) world);
-    worldPos += worldNormal * thickness;
+    //-- no mul(..., world) - boneMatrices already have global transform
+    float3 worldPos = skinnedPos.xyz + skinnedNorm * thickness;
 
     float4 viewPos = mul(float4(worldPos, 1.0f), view);
     output.pos = mul(viewPos, proj);
