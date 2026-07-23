@@ -24,12 +24,14 @@ struct CAttachData {
     DirectX::XMFLOAT3 m_attachPos{};
     DirectX::XMFLOAT3 m_attachRot{};
     DirectX::XMFLOAT3 m_attachScale{ 1.f, 1.f, 1.f };
-    CModel* m_pParent{};
 
     std::string m_ParentBone{};
 
     //-- specific bone for attach to parent bone (default - root)
     std::string m_ChildBone{};
+
+    CModel* m_pParent{};
+    DirectX::XMMATRIX m_ParentTransform{ DirectX::XMMatrixIdentity() };
 
     bool valid() { return m_pParent != nullptr; }
     void zero() {

@@ -550,6 +550,7 @@ void CModel::UpdateTransformAttached(float dt, float animTime) {
             haveParentBone = true;
         }
     }
+    m_AttachData.m_ParentTransform = parentTransform;
 
     DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(
         m_AttachData.m_attachScale.x, m_AttachData.m_attachScale.y, m_AttachData.m_attachScale.z);

@@ -312,12 +312,11 @@ void CUIViewPort::DrawGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	DirectX::XMStoreFloat4x4(&viewF, camera->GetViewMatrix());
 	DirectX::XMStoreFloat4x4(&projF, camera->GetProjectionMatrix(vpSize.x / vpSize.y));
 
-	//-- TODO: display from attached parent bone as 0,0,0 (not 0,0,0 coords)
-	float t[3];
-	float r[3];
-	float s[3];
+	//-- get model pos/rot/scale
+	float t[3], r[3], s[3];
+	const bool isAttached = model->m_AttachData.m_pParent != nullptr;
 
-	if (model->m_AttachData.m_pParent) {
+	if (isAttached) {
 		t[0] = model->m_AttachData.m_attachPos.x;
 		t[1] = model->m_AttachData.m_attachPos.y;
 		t[2] = model->m_AttachData.m_attachPos.z;
@@ -344,8 +343,18 @@ void CUIViewPort::DrawGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 		s[2] = model->m_Scale.z;
 	}
 
+	float localMatrix[16];
+	ImGuizmo::RecomposeMatrixFromComponents(t, r, s, localMatrix);
+
+	//-- local (offset) matrix -> world, multiplyed on parent transform
 	float matrix[16];
-	ImGuizmo::RecomposeMatrixFromComponents(t, r, s, matrix);
+	if (isAttached) {
+		DirectX::XMMATRIX localMat = DirectX::XMLoadFloat4x4(reinterpret_cast<DirectX::XMFLOAT4X4*>(localMatrix));
+		DirectX::XMMATRIX worldMat = localMat * model->m_AttachData.m_ParentTransform;
+		DirectX::XMStoreFloat4x4(reinterpret_cast<DirectX::XMFLOAT4X4*>(matrix), worldMat);
+	}
+	else
+		memcpy(matrix, localMatrix, sizeof(matrix));
 
 	ImGuizmo::OPERATION op = ImGuizmo::TRANSLATE;
 	switch (scene.m_GizmoMode) {
@@ -358,9 +367,16 @@ void CUIViewPort::DrawGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 
 	if (ImGuizmo::Manipulate((float*)&viewF, (float*)&projF, op, gmode, matrix))
 	{
-		ImGuizmo::DecomposeMatrixToComponents(matrix, t, r, s);
-		
-		if (model->m_AttachData.m_pParent) {
+		//-- world -> to local offset of parent bone
+		if (isAttached) {
+			DirectX::XMMATRIX worldMat = DirectX::XMLoadFloat4x4(reinterpret_cast<DirectX::XMFLOAT4X4*>(matrix));
+			DirectX::XMMATRIX invParent = DirectX::XMMatrixInverse(nullptr, model->m_AttachData.m_ParentTransform);
+			DirectX::XMMATRIX localMat = worldMat * invParent;
+
+			DirectX::XMFLOAT4X4 localF;
+			DirectX::XMStoreFloat4x4(&localF, localMat);
+			ImGuizmo::DecomposeMatrixToComponents((float*)&localF, t, r, s);
+
 			model->m_AttachData.m_attachPos = { t[0], t[1], t[2] };
 			model->m_AttachData.m_attachRot = {
 				DirectX::XMConvertToRadians(r[0]),
@@ -368,7 +384,10 @@ void CUIViewPort::DrawGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 				DirectX::XMConvertToRadians(r[2]) };
 			model->m_AttachData.m_attachScale = { s[0], s[1], s[2] };
 		}
+		//-- default model manipulation
 		else {
+			ImGuizmo::DecomposeMatrixToComponents(matrix, t, r, s);
+
 			model->m_Position = { t[0], t[1], t[2] };
 			model->m_Rotation = {
 				DirectX::XMConvertToRadians(r[0]),
