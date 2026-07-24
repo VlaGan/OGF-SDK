@@ -14,7 +14,7 @@
 #include "CUILog.h"
 #include "CUISceneSettings.h"
 #include "CUIScene.h"
-#include "CUISelectedItem.h"
+#include "CUIProperties.h"
 #include <fontawesome/IconsFontAwesome6.h>
 #include <ImGuizmo.h>
 
@@ -200,7 +200,7 @@ void CUIMain::Init(HWND hwnd)
     m_Windows.push_back(&CUILog::Get());
     m_Windows.push_back(&CUISceneSettings::Get());
     m_Windows.push_back(&CUIScene::Get());
-    m_Windows.push_back(&CUISelectedItemProp::Get());
+    m_Windows.push_back(&CUIProperties::Get());
 }
 
 //-------------------------------------------------------------------------

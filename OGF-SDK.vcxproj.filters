@@ -129,7 +129,7 @@
     <ClInclude Include="src\UI\CUIScene.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="src\UI\CUISelectedItem.h">
+    <ClInclude Include="src\UI\CUIProperties.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="src\Render\Model\OGF\COgfModel.h">
@@ -254,7 +254,7 @@
     <ClCompile Include="src\UI\CUIScene.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="src\UI\CUISelectedItem.cpp">
+    <ClCompile Include="src\UI\CUIProperties.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="3rd_party\ImGuizmo\ImGuizmo.cpp">

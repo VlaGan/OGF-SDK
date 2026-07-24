@@ -1,7 +1,7 @@
 ﻿//----------------------------------------------------------------------------
-//-- CUISelectedItemProp: Scene Selected Item Properties Window
+//-- CUIProperties: Scene Selected Item Properties Window
 //----------------------------------------------------------------------------
-#include "CUISelectedItem.h"
+#include "CUIProperties.h"
 #include "../Render/CScene.h"
 #include "../Render/Model/CModel.h"
 #include <fontawesome/IconsFontAwesome6.h>
@@ -42,7 +42,7 @@ static const char* OgfShapeTypeName(EOgfBoneShapeType t)
 //-- Model Info Section (OGF_S_DESC / OGF_S_LODS) - 
 //-- only meaningful for natively (.ogf) loaded models
 //----------------------------------------------------------------------------
-void CUISelectedItemProp::RenderModelInfo() {
+void CUIProperties::RenderModelInfo() {
 
 	CModel* model = CScene::Get().m_SelectedModel;
 
@@ -86,7 +86,7 @@ void CUISelectedItemProp::RenderModelInfo() {
 //----------------------------------------------------------------------------
 // Transform Section
 //----------------------------------------------------------------------------
-void CUISelectedItemProp::RenderModelTransform() {
+void CUIProperties::RenderModelTransform() {
 
 	CScene& scene = CScene::Get();
 	CModel* model = scene.m_SelectedModel;
@@ -167,7 +167,7 @@ void CUISelectedItemProp::RenderModelTransform() {
 //----------------------------------------------------------------------------
 //-- Meshes Data
 //----------------------------------------------------------------------------
-void CUISelectedItemProp::RenderMeshesData() {
+void CUIProperties::RenderMeshesData() {
 
 	auto& scene = CScene::Get();
 	CModel* model = scene.m_SelectedModel;
@@ -239,7 +239,7 @@ void CUISelectedItemProp::RenderMeshesData() {
 //----------------------------------------------------------------------------
 //-- Skeleton / Bones Section
 //----------------------------------------------------------------------------
-void CUISelectedItemProp::RenderSkeletonData() {
+void CUIProperties::RenderSkeletonData() {
 	
 	CModel* model = CScene::Get().m_SelectedModel;
 
@@ -311,7 +311,7 @@ void CUISelectedItemProp::RenderSkeletonData() {
 //----------------------------------------------------------------------------
 //- Animation Section
 //----------------------------------------------------------------------------
-void CUISelectedItemProp::RenderMotionsData() {
+void CUIProperties::RenderMotionsData() {
 
 	CScene& scene = CScene::Get();
 	CModel* model = scene.m_SelectedModel;
@@ -367,7 +367,7 @@ void CUISelectedItemProp::RenderMotionsData() {
 //----------------------------------------------------------------------------
 //-- Draw content
 //----------------------------------------------------------------------------
-void CUISelectedItemProp::RenderContent()
+void CUIProperties::RenderContent()
 {
 	auto& scene = CScene::Get();
 
