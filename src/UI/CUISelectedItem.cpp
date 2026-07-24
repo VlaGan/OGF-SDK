@@ -7,6 +7,7 @@
 #include <fontawesome/IconsFontAwesome6.h>
 #include <ctime>
 #include <cstdint>
+#include <format>
 
 
 //-- OGF_S_DESC timestamps are unix time (0 = not set/unknown)
@@ -37,22 +38,30 @@ static const char* OgfShapeTypeName(EOgfBoneShapeType t)
 	}
 }
 
-void CUISelectedItemProp::RenderContent()
-{
-	auto& scene = CScene::Get();
+//----------------------------------------------------------------------------
+//-- Model Info Section (OGF_S_DESC / OGF_S_LODS) - 
+//-- only meaningful for natively (.ogf) loaded models
+//----------------------------------------------------------------------------
+void CUISelectedItemProp::RenderModelInfo() {
 
-	if (!scene.m_SelectedModel) {
-		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), ICON_FA_CIRCLE_XMARK "  No item selected!");
-		return;
-	}
+	CModel* model = CScene::Get().m_SelectedModel;
 
-	CModel* model = scene.m_SelectedModel;
+	if (ImGui::BeginTabItem(ICON_FA_CIRCLE_INFO "  Model Info")) {
 
-	// Model Info Section (OGF_S_DESC / OGF_S_LODS) - only meaningful for natively (.ogf) loaded models
-	if (ImGui::CollapsingHeader(ICON_FA_CIRCLE_INFO "  Model Info")) {
 		ImGui::Text(ICON_FA_TAG "  Name: %s", model->m_modelName.c_str());
 
 		if (model->m_Description.present) {
+			static const char* kCompatNames[] = { "Unknown", "CS/CoP", "SoC", "LegacySDK (v3)" };
+			std::string mrefs_format = model->m_OgfSource.compatSignals.sawCopMotionRefs ? "CS/CoP" :
+				(model->m_OgfSource.compatSignals.sawSocMotionRefs ? "SoC" : "Unknown");
+
+			ImGui::Text(
+				ICON_FA_MICROCHIP "  Detected compat: %s, links [%d], motion refs [%s]",
+				kCompatNames[(int)model->m_OgfSource.eModelFormatVer],
+				model->m_OgfSource.compatSignals.maxBoneInfluence,
+				mrefs_format.c_str()
+			);
+
 			ImGui::Text(ICON_FA_FILE_LINES "  Source: %s", model->m_Description.sourceFile.c_str());
 			ImGui::Text(ICON_FA_FILE_LINES "  Export tool: %s", model->m_Description.exportTool.c_str());
 			ImGui::Text(ICON_FA_CLOCK "  Export time: %s", FormatOgfTime(model->m_Description.exportTime).c_str());
@@ -60,7 +69,8 @@ void CUISelectedItemProp::RenderContent()
 			ImGui::Text(ICON_FA_CALENDAR "  Created: %s", FormatOgfTime(model->m_Description.creationTime).c_str());
 			ImGui::Text(ICON_FA_FILE_LINES "  Last modified by: %s", model->m_Description.lastModifiedByTool.c_str());
 			ImGui::Text(ICON_FA_CLOCK "  Modified time: %s", FormatOgfTime(model->m_Description.modifiedTime).c_str());
-		} else {
+		}
+		else {
 			ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), ICON_FA_CIRCLE_INFO "  No OGF_S_DESC (Assimp model or none present)");
 		}
 
@@ -68,11 +78,20 @@ void CUISelectedItemProp::RenderContent()
 			ImGui::Text(ICON_FA_LAYER_GROUP "  LOD path: %s", model->m_LodPath.c_str());
 
 		ImGui::Separator();
+		ImGui::EndTabItem();
 	}
+}
+//----------------------------------------------------------------------------
 
+//----------------------------------------------------------------------------
+// Transform Section
+//----------------------------------------------------------------------------
+void CUISelectedItemProp::RenderModelTransform() {
 
-	// Transform Section
-	if (ImGui::CollapsingHeader(ICON_FA_UP_DOWN_LEFT_RIGHT "  Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
+	CScene& scene = CScene::Get();
+	CModel* model = scene.m_SelectedModel;
+
+	if (ImGui::BeginTabItem(ICON_FA_UP_DOWN_LEFT_RIGHT "  Transform")) {
 		ImGui::InputFloat3("Position", (float*)&model->m_Position.x);
 		ImGui::InputFloat3("Rotation (rad)", (float*)&model->m_Rotation.x);
 		ImGui::InputFloat3("Scale", (float*)&model->m_Scale.x);
@@ -106,7 +125,7 @@ void CUISelectedItemProp::RenderContent()
 			"No selected attach parent")) {
 
 			for (int i{}; i < models.size(); ++i) {
-				
+
 				//-- ignore selected model and models that attached to selected
 				if (model != models[i] && models[i]->m_AttachData.m_pParent != model)
 				{
@@ -139,28 +158,92 @@ void CUISelectedItemProp::RenderContent()
 		}
 		if (ImGui::Button("Detach"))
 			model->m_AttachData.zero();
-	}
 
-	// Meshes Section
-	if (ImGui::CollapsingHeader(ICON_FA_CUBES "  Meshes")) {
+		ImGui::EndTabItem();
+	}
+}
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+//-- Meshes Data
+//----------------------------------------------------------------------------
+void CUISelectedItemProp::RenderMeshesData() {
+
+	auto& scene = CScene::Get();
+	CModel* model = scene.m_SelectedModel;
+
+	SOgfModel& m_ogf = model->m_OgfSource;
+
+	if (ImGui::BeginTabItem(ICON_FA_CUBES "  Meshes")) {
+
+		if (m_ogf.sourcePath.empty()) {
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), ICON_FA_CIRCLE_XMARK "  NOT .OGF MODEL SELECTED! (TODO)");
+			ImGui::EndTabItem();
+			return;
+		}
+
+		ImGui::Separator();
 		ImGui::Text(ICON_FA_LIST "  Mesh count: %zu", model->m_Meshes.size());
-		for (size_t i = 0; i < model->m_Meshes.size(); ++i) {
+		ImGui::Separator();
+
+		for (size_t i = 0; i < m_ogf.meshes.size(); ++i) {
 			CMesh& mesh = model->m_Meshes[i];
-			std::string label = "[" + std::to_string(i) + "] " + (mesh.GetTextureName().empty() ? "(no texture)" : mesh.GetTextureName());
-			if (ImGui::TreeNode((void*)(intptr_t)i, "%s", label.c_str())) {
-				ImGui::Text(ICON_FA_IMAGE "  Texture: %s", mesh.GetTextureName().c_str());
-				ImGui::Text(ICON_FA_DRAW_POLYGON "  Shader: %s", mesh.m_ShaderName.empty() ? "n/a" : mesh.m_ShaderName.c_str());
-				ImGui::Text(ICON_FA_SHAPES "  Vertices: %u, Indices: %u", mesh.m_VertexCount, mesh.m_IndexCount);
+
+			//if (ImGui::TreeNode((void*)(intptr_t)i, "%s", std::format("Mesh [{}]", i).c_str())) {
+
+			ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f),
+				ICON_FA_SHAPES "  Mesh [%d] -> Vertices [%d], Faces [%d]",
+				i,
+				m_ogf.meshes[i].vertices.size(),
+				m_ogf.meshes[i].indices.size() / 3
+			);
+
+			//-- texture/shader name editing
+			char stexture[256], sshader[256];
+
+			strcpy_s(stexture, m_ogf.meshes[i].textureName.c_str());
+			strcpy_s(sshader, m_ogf.meshes[i].shaderName.c_str());
+
+			ImGui::Text(ICON_FA_IMAGE "  Texture:");
+			ImGui::SameLine();
+			if (ImGui::InputText(std::format("###texture_ogf_mesh{}", i).c_str(), stexture, sizeof(stexture)))
+				m_ogf.meshes[i].textureName = stexture;
+
+			ImGui::Text(ICON_FA_DRAW_POLYGON "  Shader: ");
+			ImGui::SameLine();
+			if (ImGui::InputText(std::format("###shader_ogf_mesh{}", i).c_str(), sshader, sizeof(sshader)))
+				m_ogf.meshes[i].shaderName = sshader;
+
+			//-- texture preview
+			if (model->m_Meshes.size() == m_ogf.meshes.size()) {
+				if (ImGui::TreeNode((void*)(intptr_t)i, "Texure Preview")) {
+					ImGui::Text("%s [%dx%d]", mesh.m_Texture.GetFileName().c_str(),
+						mesh.m_Texture.GetWidth(), mesh.m_Texture.GetHeight());
+					float w = ImGui::GetContentRegionAvail().x;
+					ImGui::Image(mesh.m_Texture.GetSRV(), ImVec2(w, w));
+					ImGui::TreePop();
+				}
 				if (mesh.IsTextureTransparent())
 					ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), ICON_FA_CIRCLE_INFO "  Transparent texture");
-				ImGui::TreePop();
 			}
+
+			ImGui::Separator();
+
 		}
-		ImGui::Separator();
+		ImGui::EndTabItem();
 	}
 
-	// Skeleton / Bones Section
-	if (ImGui::CollapsingHeader(ICON_FA_BONE "  Skeleton")) {
+}
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+//-- Skeleton / Bones Section
+//----------------------------------------------------------------------------
+void CUISelectedItemProp::RenderSkeletonData() {
+	
+	CModel* model = CScene::Get().m_SelectedModel;
+
+	if (ImGui::BeginTabItem(ICON_FA_BONE "  Skeleton")) {
 		if (model->m_Skeleton.m_BoneCount) {
 			ImGui::Text(ICON_FA_LIST "  Bone count: %u", model->m_Skeleton.m_BoneCount);
 			for (u32 i = 0; i < model->m_Skeleton.m_BoneCount; ++i) {
@@ -214,19 +297,32 @@ void CUISelectedItemProp::RenderContent()
 					ImGui::TreePop();
 				}
 			}
-		} else {
+		}
+		else {
 			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), ICON_FA_TRIANGLE_EXCLAMATION "  No skeleton loaded");
 		}
 		ImGui::Separator();
-	}
 
-	// Animation Section
-	if (ImGui::CollapsingHeader(ICON_FA_PERSON_RUNNING "  Animation")) {
+		ImGui::EndTabItem();
+	}
+}
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+//- Animation Section
+//----------------------------------------------------------------------------
+void CUISelectedItemProp::RenderMotionsData() {
+
+	CScene& scene = CScene::Get();
+	CModel* model = scene.m_SelectedModel;
+
+	if (ImGui::BeginTabItem(ICON_FA_PERSON_RUNNING "  Animation")) {
 		if (!model->m_vMotions.empty()) {
+
 			// Motion Selection Dropdown
 			static int current_motion_index = 0;
 
-			if (ImGui::BeginCombo("active motion##MotionCombo", 
+			if (ImGui::BeginCombo("active motion##MotionCombo",
 				model->m_pCurrentMotion ? model->m_pCurrentMotion->GetName().c_str() : "Select Motion")) {
 				for (int i = 0; i < (int)model->m_vMotions.size(); i++) {
 					bool is_selected = (model->m_pCurrentMotion == &model->m_vMotions[i]);
@@ -253,24 +349,40 @@ void CUISelectedItemProp::RenderContent()
 				ImGui::Text(ICON_FA_STOPWATCH "  Duration: %.2f sec", model->m_pCurrentMotion->Duration());
 				ImGui::Text(ICON_FA_CLOCK "  Current Time: %.2f sec", model->m_CurrentTime);
 				ImGui::Text(ICON_FA_GAUGE_HIGH "  Ticks Per Second: %.2f", model->m_pCurrentMotion->TPS());
-			} else {
+			}
+			else {
 				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), ICON_FA_TRIANGLE_EXCLAMATION "  No animation playing");
 			}
 			ImGui::Separator();
-		} else {
+		}
+		else {
 			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), ICON_FA_TRIANGLE_EXCLAMATION "  No animations loaded");
 			ImGui::Separator();
 		}
+		ImGui::EndTabItem();
 	}
-
-	//-- Textures fast preview
-	if (ImGui::CollapsingHeader(ICON_FA_FILE_IMAGE "  Textures preview")) {
-		for (auto& mesh : model->m_Meshes) {
-			ImGui::Text("%s [%dx%d]", mesh.m_Texture.GetFileName().c_str(), 
-				mesh.m_Texture.GetWidth(), mesh.m_Texture.GetHeight());
-
-			ImGui::Image(mesh.m_Texture.GetSRV(), ImVec2(250, 250));
-		}
-	}
-
 }
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+//-- Draw content
+//----------------------------------------------------------------------------
+void CUISelectedItemProp::RenderContent()
+{
+	auto& scene = CScene::Get();
+
+	if (!scene.m_SelectedModel) {
+		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), ICON_FA_CIRCLE_XMARK "  No item selected!");
+		return;
+	}
+
+	if (ImGui::BeginTabBar("###tab_model_props")) {
+		RenderModelTransform();
+		RenderModelInfo();
+		RenderMeshesData();
+		RenderSkeletonData();
+		RenderMotionsData();
+		ImGui::EndTabBar();
+	}
+}
+//----------------------------------------------------------------------------

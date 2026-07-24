@@ -18,4 +18,11 @@ public:
 	}
 
 	void RenderContent() override;
+
+	//-- Model data tabs
+	void RenderModelTransform();
+	void RenderModelInfo();
+	void RenderMeshesData();
+	void RenderSkeletonData();
+	void RenderMotionsData();
 };
