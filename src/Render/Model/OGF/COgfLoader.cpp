@@ -336,6 +336,7 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, SO
     case OGF_VERTEXFORMAT_FVF_1L:
     case 1:
     {
+        mesh.skinLinks = 1;
         out.compatSignals.maxBoneInfluence = std::max(out.compatSignals.maxBoneInfluence, 1);
         if (formatVersion == OGF_FORMAT_VERSION)
         {
@@ -382,6 +383,7 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, SO
     case OGF_VERTEXFORMAT_FVF_2L:
     case 2:
     {
+        mesh.skinLinks = 2;
         out.compatSignals.maxBoneInfluence = std::max(out.compatSignals.maxBoneInfluence, 2);
         if (verts.remaining() < static_cast<size_t>(vertCount) * sizeof(ogf_vert_2w))
         {
@@ -408,6 +410,7 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, SO
     case OGF_VERTEXFORMAT_FVF_3L:
     case 3:
     {
+        mesh.skinLinks = 3;
         out.compatSignals.maxBoneInfluence = std::max(out.compatSignals.maxBoneInfluence, 3);
         if (verts.remaining() < static_cast<size_t>(vertCount) * sizeof(ogf_vert_3w))
         {
@@ -435,6 +438,7 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, SO
     case OGF_VERTEXFORMAT_FVF_4L:
     case 4:
     {
+        mesh.skinLinks = 4;
         out.compatSignals.maxBoneInfluence = std::max(out.compatSignals.maxBoneInfluence, 4);
         if (verts.remaining() < static_cast<size_t>(vertCount) * sizeof(ogf_vert_4w))
         {

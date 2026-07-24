@@ -192,8 +192,9 @@ void CUIProperties::RenderMeshesData() {
 			//if (ImGui::TreeNode((void*)(intptr_t)i, "%s", std::format("Mesh [{}]", i).c_str())) {
 
 			ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f),
-				ICON_FA_SHAPES "  Mesh [%d] -> Vertices [%d], Faces [%d]",
+				ICON_FA_SHAPES "  Mesh [%d] -> Links [%d], Vertices [%d], Faces [%d]",
 				i,
+				m_ogf.meshes[i].skinLinks,
 				m_ogf.meshes[i].vertices.size(),
 				m_ogf.meshes[i].indices.size() / 3
 			);

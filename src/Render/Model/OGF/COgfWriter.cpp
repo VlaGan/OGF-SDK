@@ -167,14 +167,14 @@ void COgfWriter::WriteStaticGeometry(COgfChunkWriter& w, const SOgfMeshDef& mesh
 }
 
 //----------------------------------------------------------------------------
-//-- CS/CoP (socLinks=false): 4-link (ogf_vert_4w), vertType field written as
-//-- a plain integer "4".
-//-- SoC (socLinks=true): 2-link (ogf_vert_2w), vertType field written as the
-//-- MAGIC-MULTIPLE form (2 * 0x12071980, i.e. OGF_VERTEXFORMAT_FVF_2L) - this
-//-- is what real SoC assets actually use (confirmed: OGF-tool's own converter
-//-- multiplies BY 0x12071980 when converting a model TO SoC, and divides when
-//-- converting FROM SoC). Per-vertex weights are collapsed to the 2 heaviest
-//-- influences and renormalized - lossy only for genuinely 3-4-bone verts.
+//-- Number of links actually written:
+//--   - CS/CoP style: write EXACTLY as many links as the source contains
+//--     (1..4), without expanding or reducing them - the format supports
+//--     this natively.
+//--   - SoC style: the vanilla engine's hardware skinning supports a maximum
+//--     of 2 bone influences per vertex, so if the source has 3-4 influences,
+//--     reduce them (lossy, as before); otherwise keep them unchanged
+//--     (1 or 2 influences).
 //----------------------------------------------------------------------------
 void COgfWriter::WriteSkinnedGeometry(COgfChunkWriter& w, const SOgfMeshDef& mesh, ogf_u8 formatVersion, bool socLinks)
 {
@@ -182,49 +182,104 @@ void COgfWriter::WriteSkinnedGeometry(COgfChunkWriter& w, const SOgfMeshDef& mes
 
     const bool haveTB = mesh.tangents.size() == mesh.vertices.size() && mesh.binormals.size() == mesh.vertices.size();
 
-    w.w_u32(socLinks ? static_cast<ogf_u32>(OGF_VERTEXFORMAT_FVF_2L) : 4u);
+    //-- if src model have was not validated (assimp model for example) -> use cop default
+    int links = mesh.skinLinks;
+    if (links <= 0 || links > 4)
+        links = 4;
+
+    //-- old xray 1.000(0-6) limits 
+    if (socLinks && links > 2)
+        links = 2;
+
+    //-- vertType
+    const ogf_u32 vertTypeMagic[5] = { 0, OGF_VERTEXFORMAT_FVF_1L, OGF_VERTEXFORMAT_FVF_2L, OGF_VERTEXFORMAT_FVF_3L, OGF_VERTEXFORMAT_FVF_4L };
+    w.w_u32(socLinks ? vertTypeMagic[links] : static_cast<ogf_u32>(links));
     w.w_u32(static_cast<ogf_u32>(mesh.vertices.size()));
 
     for (size_t i = 0; i < mesh.vertices.size(); ++i)
     {
         const Vertex& v = mesh.vertices[i];
 
-        if (socLinks)
-        {
-            // pick the 2 heaviest influences out of the up-to-4 the source carries
-            int idx[4] = { 0, 1, 2, 3 };
-            std::sort(idx, idx + 4, [&](int a, int b) { return v.weights[a] > v.weights[b]; });
+        //-- Top-2 heaviest influences (used both when reducing to 2 links and
+        //-- for the natural 1/2-link case - simply without reordering).
+        int idx[4] = { 0, 1, 2, 3 };
+        std::sort(idx, idx + 4, [&](int a, int b) { return v.weights[a] > v.weights[b]; });
 
+        switch (links)
+        {
+        case 1:
+        {
+            if (formatVersion == OGF_FORMAT_VERSION)
+            {
+                ogf_vert_1w s{};
+                s.P[0] = v.position.x; s.P[1] = v.position.y; s.P[2] = v.position.z;
+                s.N[0] = v.normal.x;   s.N[1] = v.normal.y;   s.N[2] = v.normal.z;
+                if (haveTB) {
+                    s.T[0] = mesh.tangents[i].x;  s.T[1] = mesh.tangents[i].y;  s.T[2] = mesh.tangents[i].z;
+                    s.B[0] = mesh.binormals[i].x; s.B[1] = mesh.binormals[i].y; s.B[2] = mesh.binormals[i].z;
+                }
+                s.u = v.texcoord.x; s.v = v.texcoord.y;
+                s.bone = static_cast<ogf_u32>(v.boneIDs[idx[0]] < 0 ? 0 : v.boneIDs[idx[0]]);
+                w.w(&s, sizeof(s));
+            }
+            else // format_version 3: no T/B
+            {
+                ogf_vert_1w_legacy s{};
+                s.P[0] = v.position.x; s.P[1] = v.position.y; s.P[2] = v.position.z;
+                s.N[0] = v.normal.x;   s.N[1] = v.normal.y;   s.N[2] = v.normal.z;
+                s.u = v.texcoord.x; s.v = v.texcoord.y;
+                s.bone = static_cast<ogf_u32>(v.boneIDs[idx[0]] < 0 ? 0 : v.boneIDs[idx[0]]);
+                w.w(&s, sizeof(s));
+            }
+            break;
+        }
+        case 2:
+        {
             const int bone0 = v.boneIDs[idx[0]] < 0 ? 0 : v.boneIDs[idx[0]];
             const int bone1 = v.boneIDs[idx[1]] < 0 ? 0 : v.boneIDs[idx[1]];
             const float w0 = v.weights[idx[0]], w1 = v.weights[idx[1]];
             const float sum = w0 + w1;
-            const float wNorm = sum > 0.f ? (w1 / sum) : 0.f; // ogf_vert_2w: bone1 carries `w`, bone0 carries 1-w
+            const float wNorm = sum > 0.f ? (w1 / sum) : 0.f;
 
             ogf_vert_2w s{};
             s.bone0 = static_cast<ogf_u16>(bone0);
             s.bone1 = static_cast<ogf_u16>(bone1);
             s.P[0] = v.position.x; s.P[1] = v.position.y; s.P[2] = v.position.z;
             s.N[0] = v.normal.x;   s.N[1] = v.normal.y;   s.N[2] = v.normal.z;
-            if (haveTB)
-            {
+            if (haveTB) {
                 s.T[0] = mesh.tangents[i].x;  s.T[1] = mesh.tangents[i].y;  s.T[2] = mesh.tangents[i].z;
                 s.B[0] = mesh.binormals[i].x; s.B[1] = mesh.binormals[i].y; s.B[2] = mesh.binormals[i].z;
             }
             s.w = wNorm;
             s.u = v.texcoord.x; s.v = v.texcoord.y;
             w.w(&s, sizeof(s));
+            break;
         }
-        else
+        case 3:
+        {
+            ogf_vert_3w s{};
+            for (int b = 0; b < 3; ++b)
+                s.bone[b] = static_cast<ogf_u16>(v.boneIDs[b] < 0 ? 0 : v.boneIDs[b]);
+            s.P[0] = v.position.x; s.P[1] = v.position.y; s.P[2] = v.position.z;
+            s.N[0] = v.normal.x;   s.N[1] = v.normal.y;   s.N[2] = v.normal.z;
+            if (haveTB) {
+                s.T[0] = mesh.tangents[i].x;  s.T[1] = mesh.tangents[i].y;  s.T[2] = mesh.tangents[i].z;
+                s.B[0] = mesh.binormals[i].x; s.B[1] = mesh.binormals[i].y; s.B[2] = mesh.binormals[i].z;
+            }
+            s.w[0] = v.weights[0];
+            s.w[1] = v.weights[1];
+            s.u = v.texcoord.x; s.v = v.texcoord.y;
+            w.w(&s, sizeof(s));
+            break;
+        }
+        default: // 4
         {
             ogf_vert_4w s{};
             for (int b = 0; b < 4; ++b)
                 s.bone[b] = static_cast<ogf_u16>(v.boneIDs[b] < 0 ? 0 : v.boneIDs[b]);
-
             s.P[0] = v.position.x; s.P[1] = v.position.y; s.P[2] = v.position.z;
             s.N[0] = v.normal.x;   s.N[1] = v.normal.y;   s.N[2] = v.normal.z;
-            if (haveTB)
-            {
+            if (haveTB) {
                 s.T[0] = mesh.tangents[i].x;  s.T[1] = mesh.tangents[i].y;  s.T[2] = mesh.tangents[i].z;
                 s.B[0] = mesh.binormals[i].x; s.B[1] = mesh.binormals[i].y; s.B[2] = mesh.binormals[i].z;
             }
@@ -233,6 +288,8 @@ void COgfWriter::WriteSkinnedGeometry(COgfChunkWriter& w, const SOgfMeshDef& mes
             s.w[2] = v.weights[2];
             s.u = v.texcoord.x; s.v = v.texcoord.y;
             w.w(&s, sizeof(s));
+            break;
+        }
         }
     }
 

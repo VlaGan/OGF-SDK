@@ -172,6 +172,8 @@ struct SOgfMeshDef
     std::string shaderName;
 
     bool isSkinned = false; // true if vertices carry valid boneIDs/weights
+
+    int skinLinks{}; //-- real bone-influence links cnt
 };
 
 //-- a bone-group ("partition") used for motion blending/LOD - from

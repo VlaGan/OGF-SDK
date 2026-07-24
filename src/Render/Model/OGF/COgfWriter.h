@@ -11,9 +11,10 @@ public:
     //-- SoC and CS/CoP are BOTH format_version 4 (confirmed against a real
     //-- vanilla SoC .ogf, and against OGF-tool's Model.ChangeModelFormat()).
     //-- The real differences between them, straight from that function:
-    //--   - max skin influences/vertex: 2 (SoC hw skinning limit) vs 4
-    //--   - skin link-count field encoding: magic-multiple of 0x12071980
-    //--     (SoC) vs plain integer (CoP) - see WriteSkinnedGeometry
+    //--   - maximum skin influences per vertex: 2 (SoC hardware skinning limit)
+    //--     only when reducing source data with 3-4 links; source vertices
+    //--     already using 1 or 2 links are left unchanged in both modes, since
+    //--     both SoC and CS/CoP formats natively support 1L/2L/3L/4L vertices.
     //--   - motion refs chunk: OGF_S_MOTION_REFS/single stringZ (SoC, id=19)
     //--     vs OGF_S_MOTION_REFS2/count+array (CoP, id=24)
     //--   - embedded motion translation keys: 8-bit (SoC) vs 16-bit (CoP)
