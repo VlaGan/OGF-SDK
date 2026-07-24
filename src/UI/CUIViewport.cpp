@@ -409,6 +409,7 @@ void CUIViewPort::DrawViewGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	constexpr float kOrbitLength = 8.0f;
 
 	CCamera* camera = CScene::Get().Camera();
+	const bool isOrbital = camera->m_controlMode == eCameraControlMode::eOrbital;
 
 	ImVec2 pos(
 		imageOriginScreen.x + vpSize.x - kGizmoSize - kMargin,
@@ -420,7 +421,10 @@ void CUIViewPort::DrawViewGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	DirectX::XMFLOAT4X4 viewF;
 	DirectX::XMStoreFloat4x4(&viewF, camera->GetViewMatrix());
 
-	ImGuizmo::ViewManipulate((float*)&viewF, kOrbitLength, pos, ImVec2(kGizmoSize, kGizmoSize), IM_COL32(0, 0, 0, 0));
+	//-- use the real orbit distance as the pivot length in orbital mode so the
+	//-- widget's internal focus point roughly matches the actual scene target
+	const float manipulateLength = isOrbital ? camera->m_orbitDistance : kOrbitLength;
+	ImGuizmo::ViewManipulate((float*)&viewF, manipulateLength, pos, ImVec2(kGizmoSize, kGizmoSize), IM_COL32(0, 0, 0, 0));
 
 	if (!ImGuizmo::IsUsingViewManipulate())
 		return;
@@ -430,14 +434,26 @@ void CUIViewPort::DrawViewGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	DirectX::XMFLOAT4X4 viewInvF;
 	DirectX::XMStoreFloat4x4(&viewInvF, viewInv);
 
+	//-- "forward" here is the eye -> target direction encoded in the view matrix
+	//-- (camera-to-world Z row)
 	DirectX::XMFLOAT3 forward(viewInvF.m[2][0], viewInvF.m[2][1], viewInvF.m[2][2]);
 	float len = sqrtf(forward.x * forward.x + forward.y * forward.y + forward.z * forward.z);
 	if (len > 1e-5f) { forward.x /= len; forward.y /= len; forward.z /= len; }
 
-	camera->m_position = { viewInvF.m[3][0], viewInvF.m[3][1], viewInvF.m[3][2] };
-	camera->m_yaw = atan2f(forward.x, forward.z);
-	camera->m_pitch = std::clamp(asinf(std::clamp(forward.y, -1.0f, 1.0f)),
-		-DirectX::XM_PIDIV2 + 0.01f, DirectX::XM_PIDIV2 - 0.01f);
+	if (isOrbital)
+	{
+		DirectX::XMFLOAT3 offsetDir(-forward.x, -forward.y, -forward.z);
+		camera->m_yaw = atan2f(offsetDir.x, offsetDir.z);
+		camera->m_pitch = std::clamp(asinf(std::clamp(offsetDir.y, -1.0f, 1.0f)),
+			-DirectX::XM_PIDIV2 + 0.01f, DirectX::XM_PIDIV2 - 0.01f);
+	}
+	else
+	{
+		camera->m_position = { viewInvF.m[3][0], viewInvF.m[3][1], viewInvF.m[3][2] };
+		camera->m_yaw = atan2f(forward.x, forward.z);
+		camera->m_pitch = std::clamp(asinf(std::clamp(forward.y, -1.0f, 1.0f)),
+			-DirectX::XM_PIDIV2 + 0.01f, DirectX::XM_PIDIV2 - 0.01f);
+	}
 }
 
 
