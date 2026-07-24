@@ -49,6 +49,9 @@
     <Filter Include="Render\Model\OGF\Writer">
       <UniqueIdentifier>{7ce63005-af9d-46a2-969b-d3a7db4fac2b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Render\RQ">
+      <UniqueIdentifier>{00f808f9-58bb-404d-8cae-4be8ee8ecefd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\OGF_SDK.h">
@@ -161,6 +164,9 @@
     </ClInclude>
     <ClInclude Include="src\Render\Model\OGF\COgfLzHuf.h">
       <Filter>Render\Model\OGF</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\CRayPick.h">
+      <Filter>Render\RQ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -283,6 +289,9 @@
     </ClCompile>
     <ClCompile Include="src\Render\Model\OGF\COgfLzHuf.cpp">
       <Filter>Render\Model\OGF</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\CRayPick.cpp">
+      <Filter>Render\RQ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

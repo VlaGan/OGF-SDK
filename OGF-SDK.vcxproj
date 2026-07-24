@@ -160,6 +160,7 @@ xcopy /e /y /i /d "$(ProjectDir)appdata" "$(TargetDir)appdata"</Command>
     <ClInclude Include="src\Core\OGF_SDK.h" />
     <ClInclude Include="src\Render\AssimpHelper\AssimpFunctions.h" />
     <ClInclude Include="src\Render\CHW.h" />
+    <ClInclude Include="src\Render\CRayPick.h" />
     <ClInclude Include="src\Render\CRenderer.h" />
     <ClInclude Include="src\Render\CScene.h" />
     <ClInclude Include="src\Render\CShaderContainer.h" />
@@ -207,6 +208,7 @@ xcopy /e /y /i /d "$(ProjectDir)appdata" "$(TargetDir)appdata"</Command>
     <ClCompile Include="src\Core\OGF_SDK.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Render\CHW.cpp" />
+    <ClCompile Include="src\Render\CRayPick.cpp" />
     <ClCompile Include="src\Render\CRenderer.cpp" />
     <ClCompile Include="src\Render\CScene.cpp" />
     <ClCompile Include="src\Render\CShaderContainer.cpp" />

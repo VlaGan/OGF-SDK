@@ -33,6 +33,9 @@ private:
 	void DrawGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize);
 	void DrawViewGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize);
 
+	//-- mouse-click ray/triangle hit-test against scene models
+	void UpdateSelection(ImVec2 imageOriginScreen, ImVec2 vpSize);
+
 protected:
 	bool IconButton(const char* id, const char* icon, ImVec2 size, bool active);
 };

@@ -8,6 +8,7 @@
 #include "../Render/CHW.h"
 #include "../Render/CRenderer.h"
 #include "../Render/CScene.h"
+#include "../Render/CRayPick.h"
 #include "../Render/Model/CModel.h"
 #include "../Core/CCamera.h"
 #include <fontawesome/IconsFontAwesome6.h>
@@ -456,6 +457,37 @@ void CUIViewPort::DrawViewGizmo(ImVec2 imageOriginScreen, ImVec2 vpSize)
 	}
 }
 
+//-------------------------------------------------------------------------
+//-- Blender-style click-to-select
+//-------------------------------------------------------------------------
+void CUIViewPort::UpdateSelection(ImVec2 imageOriginScreen, ImVec2 vpSize)
+{
+	if (!ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		return;
+
+	//-- ignore if ImGuizmo wants mouse
+	if (ImGuizmo::IsOver() || ImGuizmo::IsUsing())
+		return;
+	if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows))
+		return;
+	if (vpSize.x <= 0 || vpSize.y <= 0)
+		return;
+
+	ImVec2 mouse = ImGui::GetIO().MousePos;
+
+	float mx = mouse.x - imageOriginScreen.x;
+	float my = mouse.y - imageOriginScreen.y;
+
+	if (mx < 0 || my < 0 || mx > vpSize.x || my > vpSize.y)
+		return;
+
+	CScene& scene = CScene::Get();
+	SRay ray = RayPick::RayFromScreenPoint(scene.Camera(), mx, my, vpSize.x, vpSize.y);
+
+	SRayHit hit;
+	scene.m_SelectedModel = RayPick::RaycastScene(scene, ray, hit) ? hit.model : nullptr;
+}
+
 
 void CUIViewPort::RenderContent()
 {
@@ -464,6 +496,7 @@ void CUIViewPort::RenderContent()
 	CHW& hw = CHW::Get();
 	CRenderer& renderer = CRenderer::Get();
 	CRenderTarget* rt = renderer.GetMainRT();
+	CScene& scene = CScene::Get();
 
 	ImVec2 size = ImGui::GetContentRegionAvail();
 	if (size.x > 0 && size.y > 0)
@@ -473,7 +506,7 @@ void CUIViewPort::RenderContent()
 			renderer.Resize((UINT)size.x, (UINT)size.y);
 
 			//-- why not
-			CScene::Get().Camera()->m_aspectRatio = size.x / size.y;
+			scene.Camera()->m_aspectRatio = size.x / size.y;
 		}
 	}
 
@@ -482,7 +515,7 @@ void CUIViewPort::RenderContent()
 	ImVec2 imageOrigin = ImGui::GetCursorScreenPos();
 
 	//-- having orbital control mode -> draw debug box with target position
-	auto camera = CScene::Get().Camera();
+	auto camera = scene.Camera();
 	if (camera && camera->m_LShitft) {
 		DirectX::XMFLOAT4 color(1.f, 1.f, 0.f, 1.f);
 
@@ -500,7 +533,12 @@ void CUIViewPort::RenderContent()
 
 	//-- 3D manipulator over the selected model, drawn right on the image
 	if (size.x > 0 && size.y > 0)
+	{
 		DrawGizmo(imageOrigin, size);
+
+		if(scene.m_GizmoMode == eGizmoMode::eSelect && ImGui::IsItemHovered())
+			UpdateSelection(imageOrigin, size);
+	}
 
 	//-- camera gizmo manipulator
 	if (size.x > 220.0f && size.y > 160.0f)
