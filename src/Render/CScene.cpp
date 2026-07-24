@@ -72,6 +72,11 @@ CModel* CScene::LoadModel(const std::string& path) {
 		return nullptr;
 	}
 	m_Models.push_back(model);
+
+	if (!model->m_Skeleton.m_BoneCount)
+		for (auto& m : model->m_Meshes)
+			m.SetShader(CHW::Get().m_Device, L"appdata/shaders/skinned_not.hlsl");
+
 	return model;
 }
 
