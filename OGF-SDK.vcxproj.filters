@@ -153,14 +153,14 @@
     <ClInclude Include="src\Render\Model\OGF\COgfLoader.h">
       <Filter>Render\Model\OGF\Reader</Filter>
     </ClInclude>
-    <ClInclude Include="src\Render\Model\OGF\COgfLzHuf.h">
-      <Filter>Render\Model\OGF\Reader</Filter>
-    </ClInclude>
     <ClInclude Include="src\Render\Model\OGF\COgfChunkWriter.h">
       <Filter>Render\Model\OGF\Writer</Filter>
     </ClInclude>
     <ClInclude Include="src\Render\Model\OGF\COgfWriter.h">
       <Filter>Render\Model\OGF\Writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Render\Model\OGF\COgfLzHuf.h">
+      <Filter>Render\Model\OGF</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -275,14 +275,14 @@
     <ClCompile Include="src\Render\Model\OGF\COgfLoader.cpp">
       <Filter>Render\Model\OGF\Reader</Filter>
     </ClCompile>
-    <ClCompile Include="src\Render\Model\OGF\COgfLzHuf.cpp">
-      <Filter>Render\Model\OGF\Reader</Filter>
-    </ClCompile>
     <ClCompile Include="src\Render\Model\OGF\COgfChunkWriter.cpp">
       <Filter>Render\Model\OGF\Writer</Filter>
     </ClCompile>
     <ClCompile Include="src\Render\Model\OGF\COgfWriter.cpp">
       <Filter>Render\Model\OGF\Writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model\OGF\COgfLzHuf.cpp">
+      <Filter>Render\Model\OGF</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

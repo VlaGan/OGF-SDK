@@ -70,6 +70,16 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)_build\$(Configuration)_$(Platform)\</OutDir>
+    <IntDir>_build\_TMP\$(Configuration)_$(Platform)\</IntDir>
+    <TargetName>OGF sdk</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)_build\$(Configuration)_$(Platform)\</OutDir>
+    <IntDir>_build\_TMP\$(Configuration)_$(Platform)\</IntDir>
+    <TargetName>OGF sdk</TargetName>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -114,6 +124,10 @@
       <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;assimp-vc143-mt.lib;DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)3rd_party\assimp\lib;$(ProjectDir)3rd_party\DirectXTex\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(ProjectDir)3rd_party\assimp\*.dll" "$(TargetDir)"
+xcopy /e /y /i /d "$(ProjectDir)appdata" "$(TargetDir)appdata"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -133,6 +147,10 @@
       <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;assimp-vc143-mt.lib;DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)3rd_party\assimp\lib;$(ProjectDir)3rd_party\DirectXTex\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(ProjectDir)3rd_party\assimp\*.dll" "$(TargetDir)"
+xcopy /e /y /i /d "$(ProjectDir)appdata" "$(TargetDir)appdata"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\CCamera.h" />

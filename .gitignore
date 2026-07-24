@@ -365,3 +365,4 @@ FodyWeavers.xsd
 ###### Own ignores
 userdata/
 *imgui.ini
+_build/
