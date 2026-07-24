@@ -22,11 +22,9 @@ public:
     //-- LegacySDK is the ACTUAL format_version 3 (pre-release SDK builds
     //-- 1469-1865) - a fully separate, older chunk-id namespace, unrelated
     //-- to the SoC/CoP split above.
-    enum class ECompatMode { CSCoP, SoC, LegacySDK };
-
-    static bool Save(const std::string& path, const SOgfModel& model, ECompatMode mode = ECompatMode::CSCoP);
-    static bool SaveMotions(const std::string& ogfPath, const SOgfModel& model, ECompatMode mode = ECompatMode::CSCoP);
-    static bool SaveMotionsFile(const std::string& path, const SOgfModel& model, ECompatMode mode = ECompatMode::CSCoP);
+    static bool Save(const std::string& path, const SOgfModel& model, EOgfModelFormat mode = EOgfModelFormat::eCSCoP);
+    static bool SaveMotions(const std::string& ogfPath, const SOgfModel& model, EOgfModelFormat mode = EOgfModelFormat::eCSCoP);
+    static bool SaveMotionsFile(const std::string& path, const SOgfModel& model, EOgfModelFormat mode = EOgfModelFormat::eCSCoP);
 
 private:
     enum class EOgfWriteKind { Normal, Hierarchy, SkeletonAnim, SkeletonGeomdefST, SkeletonRigid };

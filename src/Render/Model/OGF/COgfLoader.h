@@ -56,7 +56,8 @@ public:
 private:
     static bool LoadVisual(COgfChunkedReader& r, SOgfModel& out, int depth);
     static bool LoadStaticGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, ogf_u32 verticesChunkId, ogf_u32 indicesChunkId);
-    static bool LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, ogf_u8 formatVersion, ogf_u32 verticesChunkId, ogf_u32 indicesChunkId);
+    static bool LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, SOgfModel& out,
+        ogf_u8 formatVersion, ogf_u32 verticesChunkId, ogf_u32 indicesChunkId);
     static void LoadTexture(COgfChunkedReader& r, SOgfMeshDef& mesh);
     static bool LoadIndices(COgfChunkedReader& r, SOgfMeshDef& mesh, ogf_u32 indicesChunkId);
     static bool LoadSkeleton(COgfChunkedReader& r, SOgfModel& out, ogf_u8 formatVersion);
@@ -81,4 +82,7 @@ private:
     //-- counts/slots -> a multi-gigabyte vector resize -> std::bad_alloc).
     static bool LoadSMParamsAndMotions(COgfChunkedReader& root, SOgfModel& out, const std::string& debugName, bool logIfMissing = true, int formatVersionHint = -1);
     static bool LoadMotionsFile(const std::string& path, SOgfModel& out);
+
+    //-- detect ogf model format (soc, cscop etc)
+    static void CheckModelFormat(SOgfModel& out);
 };

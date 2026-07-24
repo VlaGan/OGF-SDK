@@ -141,6 +141,18 @@ bool COgfLoader::Load(const std::string& path, SOgfModel& out)
 
     if (ok)
     {
+        CheckModelFormat(out);
+        std::string format{};
+        switch (out.eModelFormatVer) {
+        case EOgfModelFormat::eUnknown: format = "Model format: UNKNOWN"; break;
+        case EOgfModelFormat::eSoC: format = "Model format: SoC"; break;
+        case EOgfModelFormat::eCSCoP: format = "Model format: CSCoP"; break;
+        case EOgfModelFormat::eLegacySDK: format = "Model format: LegacySDK"; break;
+        };
+
+        LogMsg(eLogLevel::ERR, "-COgfLoader::Load: [%s] (format v%u) -> %s",
+                path.c_str(), out.formatVersion, format.c_str());
+
         LogMsg("-COgfLoader::Load: [%s] (format v%u) -> %zu mesh(es), %zu bone(s)",
             path.c_str(), out.formatVersion, out.meshes.size(), out.bones.size());
     }
@@ -287,7 +299,8 @@ bool COgfLoader::LoadStaticGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, ogf
 //-- (36 bytes, ogf_vert_1w_legacy) vs format_version==4 (60 bytes, with T/B,
 //-- ogf_vert_1w). 2/3/4-link vertices are identical between both versions.
 //----------------------------------------------------------------------------
-bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, ogf_u8 formatVersion, ogf_u32 verticesChunkId, ogf_u32 indicesChunkId)
+bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, SOgfModel& out,
+    ogf_u8 formatVersion, ogf_u32 verticesChunkId, ogf_u32 indicesChunkId)
 {
     COgfChunkedReader verts;
     if (!r.open_chunk(verticesChunkId, verts))
@@ -297,6 +310,13 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
     }
 
     const ogf_u32 vertType = verts.r_u32();
+
+    const bool isMagic = (vertType == OGF_VERTEXFORMAT_FVF_1L || vertType == OGF_VERTEXFORMAT_FVF_2L ||
+        vertType == OGF_VERTEXFORMAT_FVF_3L || vertType == OGF_VERTEXFORMAT_FVF_4L);
+    const bool isPlain = (vertType >= 1 && vertType <= 4);
+    if (isMagic) out.compatSignals.sawMagicVertType = true;
+    else if (isPlain) out.compatSignals.sawPlainVertType = true;
+
     const ogf_u32 vertCount = verts.r_u32();
     const uint8_t* base = verts.pointer();
 
@@ -316,6 +336,7 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
     case OGF_VERTEXFORMAT_FVF_1L:
     case 1:
     {
+        out.compatSignals.maxBoneInfluence = std::max(out.compatSignals.maxBoneInfluence, 1);
         if (formatVersion == OGF_FORMAT_VERSION)
         {
             if (verts.remaining() < static_cast<size_t>(vertCount) * sizeof(ogf_vert_1w))
@@ -361,6 +382,7 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
     case OGF_VERTEXFORMAT_FVF_2L:
     case 2:
     {
+        out.compatSignals.maxBoneInfluence = std::max(out.compatSignals.maxBoneInfluence, 2);
         if (verts.remaining() < static_cast<size_t>(vertCount) * sizeof(ogf_vert_2w))
         {
             LogMsg("!COgfLoader: OGF_VERTICES (2L) truncated");
@@ -386,6 +408,7 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
     case OGF_VERTEXFORMAT_FVF_3L:
     case 3:
     {
+        out.compatSignals.maxBoneInfluence = std::max(out.compatSignals.maxBoneInfluence, 3);
         if (verts.remaining() < static_cast<size_t>(vertCount) * sizeof(ogf_vert_3w))
         {
             LogMsg("!COgfLoader: OGF_VERTICES (3L) truncated");
@@ -412,6 +435,7 @@ bool COgfLoader::LoadSkinnedGeometry(COgfChunkedReader& r, SOgfMeshDef& mesh, og
     case OGF_VERTEXFORMAT_FVF_4L:
     case 4:
     {
+        out.compatSignals.maxBoneInfluence = std::max(out.compatSignals.maxBoneInfluence, 4);
         if (verts.remaining() < static_cast<size_t>(vertCount) * sizeof(ogf_vert_4w))
         {
             LogMsg("!COgfLoader: OGF_VERTICES (4L) truncated");
@@ -615,6 +639,7 @@ bool COgfLoader::LoadMotionRefs(COgfChunkedReader& r, ogf_u8 formatVersion, SOgf
                 break;
             start = comma + 1;
         }
+        out.compatSignals.sawSocMotionRefs = true;
         return !out.motionRefs.empty();
     }
 
@@ -623,6 +648,8 @@ bool COgfLoader::LoadMotionRefs(COgfChunkedReader& r, ogf_u8 formatVersion, SOgf
         const ogf_u32 count = refs.r_u32();
         for (ogf_u32 i = 0; i < count; ++i)
             out.motionRefs.push_back(refs.r_stringZ());
+
+        out.compatSignals.sawCopMotionRefs = true;
         return !out.motionRefs.empty();
     }
 
@@ -907,6 +934,11 @@ bool COgfLoader::LoadSMParamsAndMotions(COgfChunkedReader& root, SOgfModel& out,
             //-- bit, dequantized as raw*sizeT+initT), or one constant vector
             if (flags & OGF_MOTION_FL_T_KEY_PRESENT)
             {
+                if (flags & OGF_MOTION_FL_T_KEY_16BIT) 
+                    out.compatSignals.saw16BitTranslation = true;
+                else 
+                    out.compatSignals.saw8BitTranslation = true;
+
                 mot.r_u32(); // crc - unused
 
                 std::vector<DirectX::XMFLOAT3> raw;
@@ -1039,6 +1071,36 @@ bool COgfLoader::LoadMotions(const std::string& ogfPath, SOgfModel& out)
 }
 
 //----------------------------------------------------------------------------
+//-- Model format detection
+//----------------------------------------------------------------------------
+void COgfLoader::CheckModelFormat(SOgfModel& out)
+{
+    if (out.formatVersion != OGF_FORMAT_VERSION)
+    {
+        out.eModelFormatVer = EOgfModelFormat::eLegacySDK;
+        return;
+    }
+
+    const auto& sig = out.compatSignals;
+
+    //-- motion refs chunk id check
+    if (sig.sawSocMotionRefs && !sig.sawCopMotionRefs) { out.eModelFormatVer = EOgfModelFormat::eSoC; return; }
+    if (sig.sawCopMotionRefs && !sig.sawSocMotionRefs) { out.eModelFormatVer = EOgfModelFormat::eCSCoP; return; }
+
+    //-- check more data if no mrefs
+    int soc = 0, cop = 0;
+    if (sig.sawMagicVertType) ++soc;
+    if (sig.sawPlainVertType) ++cop;
+    if (sig.maxBoneInfluence > 0 && sig.maxBoneInfluence <= 2) ++soc;
+    else if (sig.maxBoneInfluence > 2) ++cop;
+    if (sig.saw8BitTranslation) ++soc;
+    if (sig.saw16BitTranslation) ++cop;
+
+    out.eModelFormatVer = (soc == 0 && cop == 0) ? EOgfModelFormat::eUnknown
+        : (soc > cop ? EOgfModelFormat::eSoC : EOgfModelFormat::eCSCoP);
+}
+
+//----------------------------------------------------------------------------
 //-- parses one visual (recursively, for hierarchical/skeletal models)
 //----------------------------------------------------------------------------
 bool COgfLoader::LoadVisual(COgfChunkedReader& r, SOgfModel& out, int depth)
@@ -1106,7 +1168,7 @@ bool COgfLoader::LoadVisual(COgfChunkedReader& r, SOgfModel& out, int depth)
     {
         SOgfMeshDef mesh;
         LoadTexture(r, mesh);
-        if (!LoadSkinnedGeometry(r, mesh, formatVersion, verticesChunkId, indicesChunkId))
+        if (!LoadSkinnedGeometry(r, mesh, out, formatVersion, verticesChunkId, indicesChunkId))
             return false;
         out.meshes.push_back(std::move(mesh));
         break;

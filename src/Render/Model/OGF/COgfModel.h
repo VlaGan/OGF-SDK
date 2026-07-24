@@ -12,6 +12,15 @@
 #include "../../_render_structs.h" // Vertex
 #include "../CMotion.h" // CMotion / BoneMotionData / KeyPosition / KeyRotation
 
+//-- model version
+enum class EOgfModelFormat : ogf_u8
+{
+    eUnknown = 0,
+    eCSCoP,
+    eSoC,
+    eLegacySDK,
+};
+
 //-- oriented bounding box: 3x3 rotation (row-major, matches Fmatrix33's i/j/k
 //-- rows) + translate + halfsize - byte-exact with X-Ray's Fobb (xrCore/_obb.h)
 struct SOgfObb
@@ -254,4 +263,19 @@ struct SOgfModel
     //-- Broken gunslinger types detection
     bool brokenTypeOMF{};
     bool brokenTypeOGF{};
+
+    //-- Model format
+    EOgfModelFormat eModelFormatVer = EOgfModelFormat::eUnknown;
+
+    //-- Model format detection data
+    struct SOgfCompatSignals
+    {
+        bool sawMagicVertType = false; // dwVertType == N * 0x12071980
+        bool sawPlainVertType = false; // dwVertType == 1..4 (plain int)
+        bool sawSocMotionRefs = false; // OGF_S_MOTION_REFS (id 19)
+        bool sawCopMotionRefs = false; // OGF_S_MOTION_REFS2 (id 24)
+        bool saw8BitTranslation = false;
+        bool saw16BitTranslation = false; // only cscop have this
+        int  maxBoneInfluence = 0;     // 1..4, skinned meshes link-count
+    } compatSignals;
 };

@@ -540,7 +540,7 @@ void COgfWriter::WriteMeshVisual(COgfChunkWriter& w, const SOgfMeshDef& mesh, bo
 }
 
 //----------------------------------------------------------------------------
-bool COgfWriter::Save(const std::string& path, const SOgfModel& model, ECompatMode mode)
+bool COgfWriter::Save(const std::string& path, const SOgfModel& model, EOgfModelFormat mode)
 {
     if (model.meshes.empty())
     {
@@ -548,13 +548,14 @@ bool COgfWriter::Save(const std::string& path, const SOgfModel& model, ECompatMo
         return false;
     }
 
-    const ogf_u8 formatVersion = (mode == ECompatMode::LegacySDK) ? 3 : OGF_FORMAT_VERSION;
-    const bool socLinks = (mode == ECompatMode::SoC);
+    const ogf_u8 formatVersion = (mode == EOgfModelFormat::eLegacySDK) ? 3 : OGF_FORMAT_VERSION;
+    const bool socLinks = (mode == EOgfModelFormat::eSoC);
+
     //-- LegacySDK (v3) never had a REFS2-style chunk at all, so it always
     //-- uses the single-string form too - only real SoC vs CoP (both v4) is
     //-- an actual *choice* here
-    const bool socMotionRefs = (mode == ECompatMode::SoC) || (mode == ECompatMode::LegacySDK);
-    const bool socMotions = (mode == ECompatMode::SoC) || (mode == ECompatMode::LegacySDK);
+    const bool socMotionRefs = (mode == EOgfModelFormat::eSoC) || (mode == EOgfModelFormat::eLegacySDK);
+    const bool socMotions = (mode == EOgfModelFormat::eSoC) || (mode == EOgfModelFormat::eLegacySDK);
 
     if (socLinks && model.bones.size() > kMaxBonesSoC)
         LogMsg(eLogLevel::WARNING, "~COgfWriter::Save: [%s] has %zu bones - vanilla SoC's hardware skinning is only known-safe up to %zu, expect a crash or corrupted skinning in-game",
@@ -653,19 +654,19 @@ bool COgfWriter::Save(const std::string& path, const SOgfModel& model, ECompatMo
     }
     file.write(reinterpret_cast<const char*>(w.buffer().data()), w.buffer().size());
 
-    static const char* kModeNames[] = { "CS/CoP", "SoC", "LegacySDK(v3)" };
+    static const char* kModeNames[] = { "Unknown", "CS/CoP", "SoC", "LegacySDK(v3)" };
     LogMsg("-COgfWriter::Save: [%s] (%s) -> %zu byte(s)", path.c_str(), kModeNames[static_cast<int>(mode)], w.buffer().size());
     return true;
 }
 
 //----------------------------------------------------------------------------
-bool COgfWriter::SaveMotionsFile(const std::string& path, const SOgfModel& model, ECompatMode mode)
+bool COgfWriter::SaveMotionsFile(const std::string& path, const SOgfModel& model, EOgfModelFormat mode)
 {
     if (model.motions.empty() && model.partitions.empty())
         return false;
 
-    const ogf_u8 formatVersion = (mode == ECompatMode::LegacySDK) ? 3 : OGF_FORMAT_VERSION;
-    const bool socMotions = (mode == ECompatMode::SoC) || (mode == ECompatMode::LegacySDK);
+    const ogf_u8 formatVersion = (mode == EOgfModelFormat::eLegacySDK) ? 3 : OGF_FORMAT_VERSION;
+    const bool socMotions = (mode == EOgfModelFormat::eSoC) || (mode == EOgfModelFormat::eLegacySDK);
 
     COgfChunkWriter w;
     WriteSMParamsAndMotions(w, model, formatVersion, socMotions);
@@ -683,7 +684,7 @@ bool COgfWriter::SaveMotionsFile(const std::string& path, const SOgfModel& model
 }
 
 //----------------------------------------------------------------------------
-bool COgfWriter::SaveMotions(const std::string& ogfPath, const SOgfModel& model, ECompatMode mode)
+bool COgfWriter::SaveMotions(const std::string& ogfPath, const SOgfModel& model, EOgfModelFormat mode)
 {
     if (model.motionRefs.empty() || model.motions.empty())
         return false;
