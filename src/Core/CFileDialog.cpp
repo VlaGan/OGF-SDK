@@ -105,4 +105,29 @@ namespace FileDialog {
         return result;
     }
 
+    std::filesystem::path FileDialog::SaveFile(HWND owner, const wchar_t* defaultExt, UINT filter_cnt, COMDLG_FILTERSPEC* filters) {
+        IFileSaveDialog* dialog{};
+        if (FAILED(CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&dialog))))
+            return {};
+        
+        dialog->SetFileTypes(filter_cnt, filters);
+        
+        dialog->SetDefaultExtension(defaultExt);
+        if (FAILED(dialog->Show(owner))) { dialog->Release(); return {}; }
+        
+        IShellItem* item{};
+        dialog->GetResult(&item);
+       
+        PWSTR path{};
+        item->GetDisplayName(SIGDN_FILESYSPATH, &path);
+        
+        std::filesystem::path result(path);
+        
+        CoTaskMemFree(path);
+        item->Release();
+        dialog->Release();
+        
+        return result;
+    }
+
 }

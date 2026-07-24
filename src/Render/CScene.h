@@ -28,11 +28,17 @@ public:
 		return Scene;
 	}
 	void ClearScene();
+	void DeleteModel(CModel* model);
 
+	//-- Importing
 	CModel* LoadModel(const std::string& path);
 	CModel* LoadModel(const std::string& path, const std::string& ext);
 	CModel* LoadModelFromOGF(const std::string& path);
-	void DeleteModel(CModel* model);
+
+	//-- Exporting
+	bool CanExportModel();
+	void ExportCSCoP(const std::string& path);
+	void ExportSoC(const std::string& path);
 
 	std::vector<CModel*>& GetModels() { return m_Models; }
 

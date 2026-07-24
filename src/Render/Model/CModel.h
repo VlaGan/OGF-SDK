@@ -16,6 +16,7 @@
 #include <assimp/postprocess.h>
 
 #include "../Templates/ConstantBuffer.h"
+#include "OGF/COgfModel.h"
 
 class CModel;
 
@@ -144,4 +145,7 @@ public:
 
     //-- attach data
     CAttachData m_AttachData;
+
+    //-- for text exporting, maybe i will refactor CModel
+    SOgfModel m_OgfSource;
 };

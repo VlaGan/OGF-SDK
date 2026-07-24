@@ -17,8 +17,6 @@
 #include "../../Core/CSettings.h"
 
 
-extern void LogMsg(const char* fmt, ...);
-
 //-- Constructor / Destructor
 CModel::~CModel() {
     Release();
@@ -246,6 +244,8 @@ bool CModel::LoadFromOGF(ID3D11Device* device, const std::string& path)
         LogMsg(eLogLevel::ERR, "!CModel::LoadFromOGF: model [%s] has no supported geometry", path.c_str());
         return false;
     }
+
+    m_OgfSource = ogf;
 
     //-- native path doesn't use Assimp: `scene` stays null. Update() detects
     //-- this and uses TraverseSkeleton() (walking CSkeleton's own tree)

@@ -5,10 +5,11 @@
 #include "Model/CModel.h"
 #include "CHW.h"
 #include "../_defines.h"
+#include "Model/OGF/COgfWriter.h"
 
 CScene::CScene() {
 
-	auto model = LoadModel("appdata/models/Minori.fbx");
+	/*auto model = LoadModel("appdata/models/Minori.fbx");
 	if (model) {
 		model->SetScale(1.0f, 1.0f, 1.0f);
 		//model->SetPosition(0.f, -0.35f, -2.5f);
@@ -28,7 +29,7 @@ CScene::CScene() {
 		}
 		model2->m_CurrentTime = 0.f;
 		model2->m_TicksPerSecond = 0.f;
-	}
+	}*/
 
 	LogMsg(eLogLevel::DEBUG, "CRenderer::LoadScene() -> Success");
 }
@@ -84,4 +85,18 @@ CModel* CScene::LoadModelFromOGF(const std::string& path) {
 	}
 	m_Models.push_back(model);
 	return model;
+}
+
+bool CScene::CanExportModel() {
+	return m_SelectedModel != nullptr && !m_SelectedModel->m_OgfSource.meshes.empty();
+}
+
+void CScene::ExportCSCoP(const std::string& path) {
+	if (!path.empty() && CanExportModel())
+		COgfWriter::Save(path, m_SelectedModel->m_OgfSource, EOgfModelFormat::eCSCoP);
+}
+
+void CScene::ExportSoC(const std::string& path) {
+	if(!path.empty() && CanExportModel())
+		COgfWriter::Save(path, m_SelectedModel->m_OgfSource, EOgfModelFormat::eSoC);
 }

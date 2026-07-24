@@ -21,6 +21,7 @@
 #include "../Core/CSettings.h"
 #include "../Core/CFileDialog.h"
 
+#include "../_defines.h"
 //-------------------------------------------------------------------------
 //-- Ctor / Dtor
 //-------------------------------------------------------------------------
@@ -266,6 +267,9 @@ void CUIMain::Render()
 
         //-- File manipulation menu
         if (ImGui::BeginMenu(ICON_FA_FILE "  File")) {
+
+            CScene& scene = CScene::Get();
+
             if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "  Import")) {
 
                 COMDLG_FILTERSPEC filters[] = { 
@@ -278,10 +282,41 @@ void CUIMain::Render()
                 if (!file.empty())
                 {
                     std::string ext = file.extension().string();
-                    CScene::Get().LoadModel(file.string(), ext);
+                    scene.LoadModel(file.string(), ext);
                 }
             }
-            ImGui::MenuItem(ICON_FA_FLOPPY_DISK "  Export");
+            ImGui::Separator();
+
+            //-- Exporting Models
+            COMDLG_FILTERSPEC filters[] = { { L"OGF Models", L"*.ogf" } };
+
+            //-- SoC format
+            if (ImGui::MenuItem(ICON_FA_FLOPPY_DISK "  Export .ogf (SoC)")) {
+                if (!scene.CanExportModel()) {
+                    LogMsg(eLogLevel::WARNING, "~Export: select a native (.ogf-loaded) model first");
+                }
+                else 
+                {
+                    std::filesystem::path file = FileDialog::SaveFile(m_hWND, L"ogf", _countof(filters), filters);
+                    if (!file.empty())
+                        scene.ExportSoC(file.string());
+                }
+            }
+            ImGui::Separator();
+
+            //-- CS/CoP format
+            if (ImGui::MenuItem(ICON_FA_FLOPPY_DISK "  Export .ogf (CS/COP)")) {
+                if (!scene.CanExportModel()) {
+                    LogMsg(eLogLevel::WARNING, "~Export: select a native (.ogf-loaded) model first");
+                }
+                else
+                {
+                    std::filesystem::path file = FileDialog::SaveFile(m_hWND, L"ogf", _countof(filters), filters);
+                    if (!file.empty())
+                        scene.ExportCSCoP(file.string());
+                }
+            }
+
             ImGui::EndMenu();
         }
 
